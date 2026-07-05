@@ -37,7 +37,11 @@ Future<void> setupDependencies() async {
   sl.registerLazySingleton(() => ArtworkCacheService());
 
   sl.registerLazySingleton(
-    () => LibraryRepository(scanner: sl(), metadataService: sl()),
+    () => LibraryRepository(
+      scanner: sl(),
+      metadataService: sl(),
+      importService: sl(),
+    ),
   );
 
   sl.registerLazySingleton(() => AudioPlayerService());

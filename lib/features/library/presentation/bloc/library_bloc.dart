@@ -11,6 +11,8 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
     : _repository = repository,
       super(const LibraryState()) {
     on<LoadLibrary>(_onLoadLibrary);
+    on<AddSongs>(_onAddSongs);
+    on<RemoveSong>(_onRemoveSong);
   }
 
   final LibraryRepository _repository;
@@ -26,6 +28,32 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
 
       final songs = await _repository.getSongs();
 
+      emit(state.copyWith(status: LibraryStatus.loaded, songs: songs));
+    } catch (e) {
+      emit(state.copyWith(status: LibraryStatus.failure, error: e.toString()));
+    }
+  }
+
+  Future<void> _onAddSongs(
+    AddSongs event,
+    Emitter<LibraryState> emit,
+  ) async {
+    try {
+      await _repository.addSongs();
+      final songs = await _repository.getSongs();
+      emit(state.copyWith(status: LibraryStatus.loaded, songs: songs));
+    } catch (e) {
+      emit(state.copyWith(status: LibraryStatus.failure, error: e.toString()));
+    }
+  }
+
+  Future<void> _onRemoveSong(
+    RemoveSong event,
+    Emitter<LibraryState> emit,
+  ) async {
+    try {
+      await _repository.removeSong(event.song);
+      final songs = await _repository.getSongs();
       emit(state.copyWith(status: LibraryStatus.loaded, songs: songs));
     } catch (e) {
       emit(state.copyWith(status: LibraryStatus.failure, error: e.toString()));

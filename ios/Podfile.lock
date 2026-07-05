@@ -1,22 +1,16 @@
 PODS:
   - Flutter (1.0.0)
-  - flutter_media_metadata (0.0.1):
-    - Flutter
 
 DEPENDENCIES:
   - Flutter (from `Flutter`)
-  - flutter_media_metadata (from `.symlinks/plugins/flutter_media_metadata/ios`)
 
 EXTERNAL SOURCES:
   Flutter:
     :path: Flutter
-  flutter_media_metadata:
-    :path: ".symlinks/plugins/flutter_media_metadata/ios"
 
 SPEC CHECKSUMS:
   Flutter: cabc95a1d2626b1b06e7179b784ebcf0c0cde467
-  flutter_media_metadata: ad56576cf9c9842a1b23ca68195aeb816918de9b
 
-PODFILE CHECKSUM: 3c63482e143d1b91d2d2560aee9fb04ecc74ac7e
+PODFILE CHECKSUM: 251cb053df7158f337c0712f2ab29f4e0fa474ce
 
 COCOAPODS: 1.16.2

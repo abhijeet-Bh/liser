@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -42,8 +43,8 @@ class FullScreenPlayer extends StatelessWidget {
                   Positioned.fill(
                     child: ClipRRect(
                       borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-                      child: Image.network(
-                        song.artworkPath!,
+                      child: Image.file(
+                        File(song.artworkPath!),
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
                       ),
@@ -105,8 +106,8 @@ class FullScreenPlayer extends StatelessWidget {
                                   child: ClipRRect(
                                     borderRadius: BorderRadius.circular(24),
                                     child: song.artworkPath != null
-                                        ? Image.network(
-                                            song.artworkPath!,
+                                        ? Image.file(
+                                            File(song.artworkPath!),
                                             fit: BoxFit.cover,
                                             errorBuilder: (context, error, stackTrace) => const Icon(Icons.music_note, color: Colors.white, size: 80),
                                           )

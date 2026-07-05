@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -35,12 +36,31 @@ class LibraryPage extends StatelessWidget {
 class _LibraryView extends StatelessWidget {
   const _LibraryView();
 
+  Widget _buildFallbackIcon(BuildContext context, song) {
+    if (song.title.isEmpty) return const Icon(Icons.music_note);
+    return Center(
+      child: Text(
+        song.title[0].toUpperCase(),
+        style: TextStyle(
+          fontWeight: FontWeight.bold,
+          color: Theme.of(context).colorScheme.primary,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return AppScaffold(
       appBar: AppBar(
         title: const Text('Library', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 28)),
         toolbarHeight: 80,
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          context.read<LibraryBloc>().add(AddSongs());
+        },
+        child: const Icon(Icons.add_rounded),
       ),
       body: BlocBuilder<LibraryBloc, LibraryState>(
         builder: (context, libraryState) {
@@ -108,17 +128,13 @@ class _LibraryView extends StatelessWidget {
                                       width: 48,
                                       height: 48,
                                       color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
-                                      child: song.title.isEmpty
-                                          ? const Icon(Icons.music_note)
-                                          : Center(
-                                              child: Text(
-                                                song.title[0].toUpperCase(),
-                                                style: TextStyle(
-                                                  fontWeight: FontWeight.bold,
-                                                  color: Theme.of(context).colorScheme.primary,
-                                                ),
-                                              ),
-                                            ),
+                                      child: song.artworkPath != null
+                                          ? Image.file(
+                                              File(song.artworkPath!),
+                                              fit: BoxFit.cover,
+                                              errorBuilder: (context, error, stackTrace) => _buildFallbackIcon(context, song),
+                                            )
+                                          : _buildFallbackIcon(context, song),
                                     ),
                                   ),
                                   const SizedBox(width: 16),
@@ -163,7 +179,20 @@ class _LibraryView extends StatelessWidget {
                                       ),
                                     ),
                                   const SizedBox(width: 8),
-                                  Icon(Icons.more_vert, color: Theme.of(context).textTheme.bodySmall?.color, size: 20),
+                                  PopupMenuButton<String>(
+                                    icon: Icon(Icons.more_vert, color: Theme.of(context).textTheme.bodySmall?.color, size: 20),
+                                    onSelected: (value) {
+                                      if (value == 'remove') {
+                                        context.read<LibraryBloc>().add(RemoveSong(song));
+                                      }
+                                    },
+                                    itemBuilder: (context) => [
+                                      const PopupMenuItem(
+                                        value: 'remove',
+                                        child: Text('Remove from Library'),
+                                      ),
+                                    ],
+                                  ),
                                 ],
                               ),
                             ),

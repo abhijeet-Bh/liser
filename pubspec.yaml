@@ -33,8 +33,6 @@ dependencies:
 
   file_picker: ^11.0.2
 
-  flutter_media_metadata: ^1.0.0
-
   uuid: ^4.5.1
 
   just_audio: ^0.10.5
@@ -42,7 +40,8 @@ dependencies:
   audio_session: ^0.2.2
 
   google_fonts: ^6.2.1
-
+  id3: ^1.0.2
+  audio_metadata_reader: ^1.6.0
 dev_dependencies:
   flutter_test:
     sdk: flutter
