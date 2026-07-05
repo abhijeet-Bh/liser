@@ -35,52 +35,91 @@ class _OnboardingView extends StatelessWidget {
         }
       },
       child: Scaffold(
-        body: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.library_music_rounded, size: 90),
-                  const SizedBox(height: 32),
-                  Text(
-                    'Welcome to Liser',
-                    style: Theme.of(context).textTheme.headlineMedium,
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'Select your music folder to start building your library.',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodyLarge,
-                  ),
-                  const SizedBox(height: 40),
-                  BlocBuilder<OnboardingBloc, OnboardingState>(
-                    builder: (context, state) {
-                      return FilledButton(
-                        onPressed:
-                            state.status == OnboardingStatus.loading
+        body: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Theme.of(context).colorScheme.surface,
+                Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                Theme.of(context).colorScheme.surface,
+              ],
+            ),
+          ),
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(32),
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                      ),
+                      child: Icon(
+                        Icons.library_music_rounded,
+                        size: 72,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                    const SizedBox(height: 48),
+                    Text(
+                      'Welcome to Liser',
+                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Select your music folder to start building your beautiful library.',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                            color: Theme.of(context).textTheme.bodySmall?.color,
+                            height: 1.5,
+                          ),
+                    ),
+                    const SizedBox(height: 56),
+                    BlocBuilder<OnboardingBloc, OnboardingState>(
+                      builder: (context, state) {
+                        return SizedBox(
+                          width: double.infinity,
+                          child: FilledButton(
+                            style: FilledButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 18),
+                              elevation: 8,
+                              shadowColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
+                            ),
+                            onPressed: state.status == OnboardingStatus.loading
                                 ? null
                                 : () {
-                                  context.read<OnboardingBloc>().add(
-                                    PickMusicFolderPressed(),
-                                  );
-                                },
-                        child:
-                            state.status == OnboardingStatus.loading
+                                    context.read<OnboardingBloc>().add(
+                                      PickMusicFolderPressed(),
+                                    );
+                                  },
+                            child: state.status == OnboardingStatus.loading
                                 ? const SizedBox(
-                                  width: 22,
-                                  height: 22,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
+                                    width: 24,
+                                    height: 24,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2.5,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : const Text(
+                                    'Choose Music Folder',
+                                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                                   ),
-                                )
-                                : const Text('Choose Music Folder'),
-                      );
-                    },
-                  ),
-                ],
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
