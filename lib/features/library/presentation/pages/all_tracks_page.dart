@@ -8,6 +8,7 @@ import 'package:liser/features/library/presentation/bloc/library_bloc.dart';
 import 'package:liser/features/player/presentation/bloc/player_bloc.dart';
 import 'package:liser/app/theme/app_colors.dart';
 import 'package:liser/app/widgets/frosted_background.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 
 class AllTracksPage extends StatelessWidget {
   const AllTracksPage({super.key});
@@ -124,64 +125,64 @@ class AllTracksPage extends StatelessWidget {
                             itemBuilder: (context, index) {
                               final song = libraryState.songs[index];
 
-                              return Dismissible(
+                              return Slidable(
                                 key: ValueKey(song.id),
-                                dismissThresholds: const {
-                                  DismissDirection.startToEnd: 0.2, // Small swipe to add
-                                  DismissDirection.endToStart: 0.5, // Normal swipe to delete
-                                },
-                                background: Container(
-                                  color: AppColors.primary,
-                                  alignment: Alignment.centerLeft,
-                                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                                  child: const Icon(CupertinoIcons.text_insert, color: Colors.white),
-                                ),
-                                secondaryBackground: Container(
-                                  color: Colors.red,
-                                  alignment: Alignment.centerRight,
-                                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                                  child: const Icon(CupertinoIcons.trash, color: Colors.white),
-                                ),
-                                confirmDismiss: (direction) async {
-                                  if (direction == DismissDirection.startToEnd) {
-                                    // Swipe Right -> Add to Queue
-                                    context.read<PlayerBloc>().add(AddSongToEnd(song));
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text('${song.title} added to queue', style: const TextStyle(fontWeight: FontWeight.w500)),
-                                        duration: const Duration(seconds: 2),
-                                        behavior: SnackBarBehavior.floating,
-                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                      ),
-                                    );
-                                    return false; // Bounce back
-                                  } else if (direction == DismissDirection.endToStart) {
-                                    // Swipe Left -> Delete
-                                    return await showDialog<bool>(
-                                      context: context,
-                                      builder: (context) => AlertDialog(
-                                        title: const Text('Delete Song', style: TextStyle(fontWeight: FontWeight.bold)),
-                                        content: Text('Are you sure you want to remove "${song.title}" from your library?'),
-                                        actions: [
-                                          TextButton(
-                                            onPressed: () => Navigator.of(context).pop(false),
-                                            child: const Text('Cancel'),
+                                startActionPane: ActionPane(
+                                  motion: const StretchMotion(),
+                                  children: [
+                                    SlidableAction(
+                                      onPressed: (context) {
+                                        context.read<PlayerBloc>().add(AddSongToEnd(song));
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(
+                                            content: Text('${song.title} added to queue', style: const TextStyle(fontWeight: FontWeight.w500)),
+                                            duration: const Duration(seconds: 2),
+                                            behavior: SnackBarBehavior.floating,
+                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                                           ),
-                                          TextButton(
-                                            onPressed: () => Navigator.of(context).pop(true),
-                                            child: const Text('Delete', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+                                        );
+                                      },
+                                      backgroundColor: AppColors.primary,
+                                      foregroundColor: Colors.white,
+                                      icon: CupertinoIcons.text_insert,
+                                    ),
+                                  ],
+                                ),
+                                endActionPane: ActionPane(
+                                  motion: const StretchMotion(),
+                                  children: [
+                                    SlidableAction(
+                                      onPressed: (context) async {
+                                        final delete = await showDialog<bool>(
+                                          context: context,
+                                          builder: (context) => AlertDialog(
+                                            title: const Text('Delete Song', style: TextStyle(fontWeight: FontWeight.bold)),
+                                            content: Text('Are you sure you want to remove "${song.title}" from your library?'),
+                                            actions: [
+                                              TextButton(
+                                                onPressed: () => Navigator.of(context).pop(false),
+                                                child: const Text('Cancel'),
+                                              ),
+                                              TextButton(
+                                                onPressed: () => Navigator.of(context).pop(true),
+                                                child: const Text('Delete', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+                                              ),
+                                            ],
                                           ),
-                                        ],
-                                      ),
-                                    ) ?? false;
-                                  }
-                                  return false;
-                                },
-                                onDismissed: (direction) {
-                                  if (direction == DismissDirection.endToStart) {
-                                    context.read<LibraryBloc>().add(RemoveSong(song));
-                                  }
-                                },
+                                        ) ?? false;
+
+                                        if (delete) {
+                                          if (context.mounted) {
+                                            context.read<LibraryBloc>().add(RemoveSong(song));
+                                          }
+                                        }
+                                      },
+                                      backgroundColor: Colors.red,
+                                      foregroundColor: Colors.white,
+                                      icon: CupertinoIcons.trash,
+                                    ),
+                                  ],
+                                ),
                                 child: InkWell(
                                   onTap: () {
                                     context.read<PlayerBloc>().add(

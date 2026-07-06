@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:liser/app/bloc/app_bloc.dart';
+import 'package:liser/app/widgets/frosted_background.dart';
 
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
@@ -64,18 +65,8 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
         }
       },
       child: Scaffold(
-        body: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Theme.of(context).colorScheme.surface,
-                Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
-                Theme.of(context).colorScheme.surface,
-              ],
-            ),
-          ),
+        extendBodyBehindAppBar: true,
+        body: FrostedBackground(
           child: Center(
             child: AnimatedBuilder(
               animation: _animationController,
