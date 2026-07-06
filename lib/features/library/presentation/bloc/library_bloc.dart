@@ -54,6 +54,7 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
     AddSongs event,
     Emitter<LibraryState> emit,
   ) async {
+    emit(state.copyWith(status: LibraryStatus.loading));
     try {
       await _repository.addSongs();
       final songs = await _repository.getSongs();
@@ -65,7 +66,16 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
 
   Future<void> _onRemoveSong(RemoveSong event, Emitter<LibraryState> emit) async {
     await _repository.removeSong(event.song);
-    add(LoadLibrary());
+    // Don't call LoadLibrary() because it triggers a full scan which is slow.
+    // Just get the updated songs and playlists.
+    final songs = await _repository.getSongs();
+    final playlists = await _repository.getPlaylists();
+    emit(state.copyWith(
+      status: LibraryStatus.loaded, 
+      songs: songs, 
+      playlists: playlists,
+      updateCount: state.updateCount + 1,
+    ));
   }
 
   Future<void> _onClearLibrary(ClearLibrary event, Emitter<LibraryState> emit) async {

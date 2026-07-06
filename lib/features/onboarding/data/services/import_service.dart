@@ -45,6 +45,9 @@ class ImportService {
       imported++;
     }
 
+    // Clear the cache to prevent duplicate file storage
+    await FilePicker.clearTemporaryFiles();
+
     return imported;
   }
 }

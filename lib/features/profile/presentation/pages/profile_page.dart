@@ -5,9 +5,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as p;
 
 import 'package:liser/app/bloc/app_bloc.dart';
 import 'package:liser/app/widgets/frosted_background.dart';
+import 'package:liser/features/profile/presentation/widgets/profile_picture_widget.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -39,9 +42,16 @@ class _ProfilePageState extends State<ProfilePage> {
     );
 
     if (result != null && result.files.single.path != null) {
+      final originalFile = File(result.files.single.path!);
+      final docsDir = await getApplicationDocumentsDirectory();
+      final extension = p.extension(originalFile.path);
+      final newPath = p.join(docsDir.path, 'profile_picture$extension');
+      
+      await originalFile.copy(newPath);
+      
       if (!mounted) return;
       context.read<AppBloc>().add(
-        UpdateProfile(userPhotoPath: result.files.single.path!),
+        UpdateProfile(userPhotoPath: newPath),
       );
     }
   }
@@ -84,26 +94,9 @@ class _ProfilePageState extends State<ProfilePage> {
                       onTap: _pickPhoto,
                       child: Stack(
                         children: [
-                          Container(
-                            width: 120,
-                            height: 120,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                              image: photoPath != null
-                                  ? DecorationImage(
-                                      image: FileImage(File(photoPath)),
-                                      fit: BoxFit.cover,
-                                    )
-                                  : null,
-                            ),
-                            child: photoPath == null
-                                ? Icon(
-                                    CupertinoIcons.person_fill,
-                                    size: 60,
-                                    color: Theme.of(context).colorScheme.primary,
-                                  )
-                                : null,
+                          ProfilePictureWidget(
+                            photoPath: photoPath,
+                            size: 120,
                           ),
                           Positioned(
                             bottom: 0,

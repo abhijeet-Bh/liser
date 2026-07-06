@@ -12,16 +12,48 @@ class SettingsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: const Text('Settings', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 28)),
-        toolbarHeight: 80,
-      ),
-      body: FrostedBackground(
-        child: SafeArea(
+    return BlocListener<LibraryBloc, LibraryState>(
+      listenWhen: (previous, current) {
+        return previous.status != current.status &&
+            (previous.status == LibraryStatus.loading || current.status == LibraryStatus.loading);
+      },
+      listener: (context, state) {
+        if (state.status == LibraryStatus.loading) {
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (dialogContext) => const Center(
+              child: Card(
+                color: Colors.black87,
+                child: Padding(
+                  padding: EdgeInsets.all(24.0),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      CircularProgressIndicator(),
+                      SizedBox(height: 16),
+                      Text('Please wait...', style: TextStyle(color: Colors.white)),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        } else {
+          // Close the dialog
+          Navigator.of(context, rootNavigator: true).pop();
+        }
+      },
+      child: Scaffold(
+        extendBodyBehindAppBar: true,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          title: const Text('Settings', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 28)),
+          toolbarHeight: 80,
+        ),
+        body: FrostedBackground(
+          child: SafeArea(
           child: ListView(
             padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 8).copyWith(bottom: 150),
             children: [
@@ -177,6 +209,7 @@ class SettingsPage extends StatelessWidget {
             ],
           ),
         ),
+      ),
       ),
     );
   }

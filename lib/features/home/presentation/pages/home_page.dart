@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -11,6 +12,7 @@ import 'package:liser/app/widgets/frosted_background.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:liser/app/di/service_locator.dart';
 import 'package:liser/core/services/artist_image_service.dart';
+import 'package:liser/features/profile/presentation/widgets/profile_picture_widget.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -24,6 +26,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   List<Song> _suggestedSongs = [];
   List<Map<String, dynamic>> _mixes = [];
   List<String> _topArtists = [];
+  String _searchQuery = '';
 
   @override
   void initState() {
@@ -48,66 +51,70 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(
+    return FrostedBackground(
+      child: Scaffold(
         backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: ShaderMask(
-          shaderCallback: (bounds) => LinearGradient(
-            colors: [
-              Theme.of(context).colorScheme.primary,
-              Theme.of(context).colorScheme.secondary,
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ).createShader(bounds),
-          child: const Text(
-            'LISER',
-            style: TextStyle(
-              fontWeight: FontWeight.w900,
-              fontSize: 32,
-              letterSpacing: 2,
-              color: Colors.white,
+        extendBodyBehindAppBar: false,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          title: ShaderMask(
+            shaderCallback: (bounds) => LinearGradient(
+              colors: [
+                Theme.of(context).colorScheme.primary,
+                Theme.of(context).colorScheme.secondary,
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ).createShader(bounds),
+            child: const Text(
+              'LISER',
+              style: TextStyle(
+                fontWeight: FontWeight.w900,
+                fontSize: 32,
+                letterSpacing: 2,
+                color: Colors.white,
+              ),
+            ),
+          ),
+          toolbarHeight: 80,
+          actions: [
+            BlocBuilder<AppBloc, AppState>(
+              builder: (context, appState) {
+                final photoPath = appState.settings?.userPhotoPath;
+                return GestureDetector(
+                  onTap: () => context.push('/profile'),
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: 24),
+                    child: ProfilePictureWidget(photoPath: photoPath, size: 40),
+                  ),
+                );
+              },
+            ),
+          ],
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(60),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+              child: CupertinoSearchTextField(
+                placeholder: 'Search songs or artists...',
+                style: const TextStyle(color: Colors.white),
+                backgroundColor: Colors.white.withValues(alpha: 0.1),
+                itemColor: Colors.white54,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                onChanged: (value) {
+                  // We need to implement search query in home page. 
+                  // But wait, there is no `_searchQuery` state variable in home page right now?
+                  // I'll check in a moment. Let's just set it for now.
+                  setState(() {
+                    _searchQuery = value;
+                  });
+                },
+              ),
             ),
           ),
         ),
-        toolbarHeight: 80,
-        actions: [
-          BlocBuilder<AppBloc, AppState>(
-            builder: (context, appState) {
-              final photoPath = appState.settings?.userPhotoPath;
-              return GestureDetector(
-                onTap: () => context.push('/profile'),
-                child: Container(
-                  width: 40,
-                  height: 40,
-                  margin: const EdgeInsets.only(right: 24),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                    image: photoPath != null
-                        ? DecorationImage(
-                            image: FileImage(File(photoPath)),
-                            fit: BoxFit.cover,
-                          )
-                        : null,
-                  ),
-                  child: photoPath == null
-                      ? Icon(
-                          CupertinoIcons.person_fill,
-                          color: Theme.of(context).colorScheme.primary,
-                          size: 20,
-                        )
-                      : null,
-                ),
-              );
-            },
-          ),
-        ],
-      ),
-      body: FrostedBackground(
-        child: SafeArea(
+        body: SafeArea(
           child: BlocBuilder<LibraryBloc, LibraryState>(
             builder: (context, state) {
               if (state.status == LibraryStatus.loading) {
@@ -200,19 +207,88 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                 _lastUpdateCount = state.updateCount;
               }
 
-              return ListView(
-                padding: const EdgeInsets.only(bottom: 150),
-                children: [
-                  _buildSectionTitle(context, 'Liser Mixes'),
-                  _buildMixesSection(context),
-                  const SizedBox(height: 16),
-                  _buildSectionTitle(context, 'Suggested Songs'),
-                  _buildSuggestedSongs(context, _suggestedSongs),
-                  const SizedBox(height: 32),
-                  if (_topArtists.isNotEmpty) ...[
-                    _buildSectionTitle(context, 'Top Artists'),
-                    _buildTopArtists(context, _topArtists),
-                  ]
+              final filteredSongs = _searchQuery.isEmpty 
+                  ? <Song>[] 
+                  : state.songs.where((s) => s.title.toLowerCase().contains(_searchQuery.toLowerCase()) || s.artist.toLowerCase().contains(_searchQuery.toLowerCase())).toList();
+
+              return CustomScrollView(
+                slivers: [
+                  if (_searchQuery.isNotEmpty)
+                    if (filteredSongs.isEmpty)
+                      SliverFillRemaining(
+                        child: Center(
+                          child: Text('No results for "$_searchQuery"', style: Theme.of(context).textTheme.bodyLarge),
+                        ),
+                      )
+                    else
+                      SliverPadding(
+                        padding: const EdgeInsets.only(bottom: 150),
+                        sliver: SliverList(
+                          delegate: SliverChildBuilderDelegate(
+                            (context, index) {
+                              if (index.isOdd) {
+                                return const Divider(
+                                  height: 1, 
+                                  thickness: 1, 
+                                  indent: 84, 
+                                  endIndent: 24,
+                                  color: Colors.white10
+                                );
+                              }
+                              
+                              final songIndex = index ~/ 2;
+                              final song = filteredSongs[songIndex];
+                              return ListTile(
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
+                                leading: ClipRRect(
+                                  borderRadius: BorderRadius.circular(8),
+                                  child: Container(
+                                    width: 48,
+                                    height: 48,
+                                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                                    child: song.artworkPath != null && File(song.artworkPath!).existsSync()
+                                        ? Image.file(
+                                            File(song.artworkPath!),
+                                            fit: BoxFit.cover,
+                                          )
+                                        : Center(
+                                            child: Text(
+                                              song.title.isNotEmpty ? song.title[0].toUpperCase() : '?',
+                                              style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.grey),
+                                            ),
+                                          ),
+                                  ),
+                                ),
+                                title: Text(song.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600)),
+                                subtitle: Text(song.artist, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color)),
+                                trailing: const Icon(CupertinoIcons.play_circle, color: Colors.grey),
+                                onTap: () {
+                                  context.read<PlayerBloc>().add(PlaySong(song: song, queue: filteredSongs));
+                                },
+                              );
+                            },
+                            childCount: filteredSongs.isEmpty ? 0 : filteredSongs.length * 2 - 1,
+                          ),
+                        ),
+                      )
+                  else
+                    SliverPadding(
+                      padding: const EdgeInsets.only(bottom: 150),
+                      sliver: SliverList.list(
+                        children: [
+                          _buildSectionTitle(context, 'Liser Mixes'),
+                          _buildMixesSection(context),
+                          const SizedBox(height: 16),
+                          _buildSectionTitle(context, 'Suggested Songs'),
+                          _buildSuggestedSongs(context, _suggestedSongs),
+                          const SizedBox(height: 32),
+                          if (_topArtists.isNotEmpty) ...[
+                            _buildSectionTitle(context, 'Top Artists'),
+                            _buildTopArtists(context, _topArtists),
+                          ]
+                        ],
+                      ),
+                    ),
                 ],
               );
             },
