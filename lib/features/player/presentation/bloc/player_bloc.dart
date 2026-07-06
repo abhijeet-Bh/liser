@@ -6,6 +6,8 @@ import 'package:just_audio/just_audio.dart';
 
 import 'package:liser/features/library/data/models/song.dart';
 import 'package:liser/features/player/data/services/audio_player_service.dart';
+import 'package:liser/features/library/data/repositories/library_repository.dart';
+import 'package:liser/app/di/service_locator.dart';
 
 part 'player_event.dart';
 part 'player_state.dart';
@@ -212,10 +214,17 @@ class PlayerBloc extends Bloc<PlayerEvent, PlayerUiState> {
     emit(state.copyWith(duration: event.duration ?? Duration.zero));
   }
 
-  void _onCurrentSongChanged(
+  Future<void> _onCurrentSongChanged(
     _CurrentSongChanged event,
     Emitter<PlayerUiState> emit,
-  ) {
+  ) async {
+    if (event.song != null && event.song?.id != state.currentSong?.id) {
+      try {
+        await sl<LibraryRepository>().incrementPlayCount(event.song!);
+      } catch (e) {
+        // Ignore error if it fails
+      }
+    }
     emit(
       state.copyWith(
         currentSong: event.song,

@@ -7,8 +7,18 @@ import 'package:liser/features/library/presentation/bloc/library_bloc.dart';
 import 'package:liser/features/player/presentation/bloc/player_bloc.dart';
 import 'package:liser/app/widgets/frosted_background.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  int _lastUpdateCount = -1;
+  List<Song> _suggestedSongs = [];
+  List<Map<String, dynamic>> _mixes = [];
+  List<String> _topArtists = [];
 
   @override
   Widget build(BuildContext context) {
@@ -17,7 +27,25 @@ class HomePage extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        title: const Text('Home', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 28)),
+        title: ShaderMask(
+          shaderCallback: (bounds) => LinearGradient(
+            colors: [
+              Theme.of(context).colorScheme.primary,
+              Theme.of(context).colorScheme.secondary,
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ).createShader(bounds),
+          child: const Text(
+            'LISER',
+            style: TextStyle(
+              fontWeight: FontWeight.w900,
+              fontSize: 32,
+              letterSpacing: 2,
+              color: Colors.white,
+            ),
+          ),
+        ),
         toolbarHeight: 80,
       ),
       body: FrostedBackground(
@@ -43,28 +71,61 @@ class HomePage extends StatelessWidget {
                 );
               }
 
-              final allSongs = List<Song>.from(state.songs);
-              allSongs.shuffle();
-              final suggestedSongs = allSongs.take(10).toList();
-
-              final artistCounts = <String, int>{};
-              for (final song in state.songs) {
-                if (song.artist.isNotEmpty) {
-                  artistCounts[song.artist] = (artistCounts[song.artist] ?? 0) + 1;
+              if (state.songs.isNotEmpty && state.updateCount != _lastUpdateCount) {
+                final allSongs = List<Song>.from(state.songs);
+                
+                // Top Artists
+                final artistCounts = <String, int>{};
+                for (final song in allSongs) {
+                  if (song.artist.isNotEmpty) {
+                    artistCounts[song.artist] = (artistCounts[song.artist] ?? 0) + 1;
+                  }
                 }
+                final sortedArtists = artistCounts.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+                _topArtists = sortedArtists.take(10).map((e) => e.key).toList();
+
+                // Suggested Songs
+                allSongs.shuffle();
+                _suggestedSongs = allSongs.take(10).toList();
+                
+                // Mixes
+                _mixes = [];
+                
+                // Most Played Mix
+                final mostPlayedSongs = allSongs.where((s) => s.playCount > 0).toList()..sort((a, b) => b.playCount.compareTo(a.playCount));
+                if (mostPlayedSongs.isNotEmpty) {
+                  _mixes.add({
+                    'name': 'Most Played',
+                    'songs': mostPlayedSongs.take(20).toList(),
+                  });
+                }
+                
+                // 5 Random Mixes
+                int mixCount = 1;
+                while (_mixes.length < 6) {
+                  allSongs.shuffle();
+                  _mixes.add({
+                    'name': 'Mix $mixCount',
+                    'songs': allSongs.take(15).toList(),
+                  });
+                  mixCount++;
+                }
+
+                _lastUpdateCount = state.updateCount;
               }
-              final sortedArtists = artistCounts.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
-              final topArtists = sortedArtists.take(10).map((e) => e.key).toList();
 
               return ListView(
                 padding: const EdgeInsets.only(bottom: 150),
                 children: [
+                  _buildSectionTitle(context, 'Liser Mixes'),
+                  _buildMixesSection(context),
+                  const SizedBox(height: 16),
                   _buildSectionTitle(context, 'Suggested Songs'),
-                  _buildSuggestedSongs(context, suggestedSongs),
+                  _buildSuggestedSongs(context, _suggestedSongs),
                   const SizedBox(height: 32),
-                  if (topArtists.isNotEmpty) ...[
+                  if (_topArtists.isNotEmpty) ...[
                     _buildSectionTitle(context, 'Top Artists'),
-                    _buildTopArtists(context, topArtists),
+                    _buildTopArtists(context, _topArtists),
                   ]
                 ],
               );
@@ -74,6 +135,128 @@ class HomePage extends StatelessWidget {
       ),
     );
   }
+
+  Widget _buildMixesSection(BuildContext context) {
+    if (_mixes.isEmpty) return const SizedBox.shrink();
+    return SizedBox(
+      height: 200,
+      child: ListView.separated(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        scrollDirection: Axis.horizontal,
+        itemCount: _mixes.length,
+        separatorBuilder: (context, index) => const SizedBox(width: 16),
+        itemBuilder: (context, index) {
+          final mixMap = _mixes[index];
+          final String name = mixMap['name'];
+          final List<Song> mix = mixMap['songs'];
+          
+          return GestureDetector(
+            onTap: () {
+              if (mix.isNotEmpty) {
+                context.read<PlayerBloc>().add(PlaySong(song: mix.first, queue: mix));
+              }
+            },
+            child: SizedBox(
+              width: 140,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: Container(
+                        width: double.infinity,
+                        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            _buildMixCollage(mix, context),
+                            Container(
+                              color: Colors.black.withValues(alpha: 0.2), // Darken the collage slightly
+                            ),
+                            Center(
+                              child: Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withValues(alpha: 0.5),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  CupertinoIcons.play_fill,
+                                  color: Colors.white,
+                                  size: 24,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    name,
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildMixCollage(List<Song> songs, BuildContext context) {
+    final artworks = songs
+        .where((s) => s.artworkPath != null)
+        .map((s) => s.artworkPath!)
+        .toSet()
+        .take(4)
+        .toList();
+
+    if (artworks.isEmpty) {
+      return Icon(CupertinoIcons.music_albums, color: Theme.of(context).colorScheme.primary, size: 40);
+    }
+
+    if (artworks.length == 1) {
+      return Image.file(File(artworks[0]), fit: BoxFit.cover, width: double.infinity, height: double.infinity);
+    }
+
+    if (artworks.length == 2 || artworks.length == 3) {
+      return Row(
+        children: [
+          Expanded(child: Image.file(File(artworks[0]), fit: BoxFit.cover, width: double.infinity, height: double.infinity)),
+          Expanded(child: Image.file(File(artworks[1]), fit: BoxFit.cover, width: double.infinity, height: double.infinity)),
+        ],
+      );
+    }
+
+    return Column(
+      children: [
+        Expanded(
+          child: Row(
+            children: [
+              Expanded(child: Image.file(File(artworks[0]), fit: BoxFit.cover, width: double.infinity, height: double.infinity)),
+              Expanded(child: Image.file(File(artworks[1]), fit: BoxFit.cover, width: double.infinity, height: double.infinity)),
+            ],
+          ),
+        ),
+        Expanded(
+          child: Row(
+            children: [
+              Expanded(child: Image.file(File(artworks[2]), fit: BoxFit.cover, width: double.infinity, height: double.infinity)),
+              Expanded(child: Image.file(File(artworks[3]), fit: BoxFit.cover, width: double.infinity, height: double.infinity)),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+
 
   Widget _buildSectionTitle(BuildContext context, String title) {
     return Padding(

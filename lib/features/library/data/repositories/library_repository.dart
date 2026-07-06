@@ -111,6 +111,12 @@ class LibraryRepository {
     await song.save();
   }
 
+  Future<void> incrementPlayCount(Song song) async {
+    song.playCount = (song.playCount) + 1;
+    song.lastPlayed = DateTime.now();
+    await song.save();
+  }
+
   Future<List<Playlist>> getPlaylists() async {
     return _playlistsBox.values.toList();
   }
