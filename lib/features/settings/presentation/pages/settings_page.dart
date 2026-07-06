@@ -25,7 +25,7 @@ class SettingsPage extends StatelessWidget {
           child: ListView(
             padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 8).copyWith(bottom: 150),
             children: [
-              _buildSectionHeader(context, 'Library'),
+              _buildSectionHeader(context, 'Library Management'),
               ListTile(
                 contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
                 leading: Container(
@@ -82,6 +82,24 @@ class SettingsPage extends StatelessWidget {
                   },
                 ),
               ],
+              const Divider(height: 1, thickness: 1, indent: 84, endIndent: 24, color: Colors.white10),
+              ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                leading: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.redAccent.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(CupertinoIcons.trash, color: Colors.redAccent),
+                ),
+                title: const Text('Clear Library', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+                subtitle: Text('Remove all songs and playlists', style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color)),
+                trailing: const Icon(CupertinoIcons.chevron_right, size: 20, color: Colors.grey),
+                onTap: () {
+                  _showClearLibraryDialog(context);
+                },
+              ),
               const SizedBox(height: 24),
               _buildSectionHeader(context, 'Display'),
               BlocBuilder<AppBloc, AppState>(
@@ -175,6 +193,103 @@ class SettingsPage extends StatelessWidget {
           color: Theme.of(context).colorScheme.primary,
         ),
       ),
+    );
+  }
+
+  void _showClearLibraryDialog(BuildContext context) {
+    final state = context.read<LibraryBloc>().state;
+    final songCount = state.songs.length;
+    
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: 'Dismiss',
+      transitionDuration: const Duration(milliseconds: 300),
+      pageBuilder: (context, animation, secondaryAnimation) {
+        return Center(
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 32),
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surface,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.3),
+                  blurRadius: 30,
+                  offset: const Offset(0, 15),
+                ),
+              ],
+              border: Border.all(color: Colors.white.withValues(alpha: 0.1), width: 1),
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.redAccent.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(CupertinoIcons.exclamationmark_triangle_fill, size: 56, color: Colors.redAccent),
+                  ),
+                  const SizedBox(height: 24),
+                  const Text('Clear Library?', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 12),
+                  Text(
+                    'These $songCount songs will be completely deleted from your Liser library. This action cannot be undone.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 15, color: Theme.of(context).textTheme.bodySmall?.color, height: 1.4),
+                  ),
+                  const SizedBox(height: 32),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () {
+                            context.read<LibraryBloc>().add(ClearLibrary());
+                            Navigator.pop(context);
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.redAccent,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            elevation: 0,
+                          ),
+                          child: const Text('Delete All', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+      transitionBuilder: (context, animation, secondaryAnimation, child) {
+        return FadeTransition(
+          opacity: animation,
+          child: ScaleTransition(
+            scale: Tween<double>(begin: 0.9, end: 1.0).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutBack)),
+            child: child,
+          ),
+        );
+      },
     );
   }
 }

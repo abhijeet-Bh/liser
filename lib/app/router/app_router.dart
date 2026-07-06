@@ -5,6 +5,7 @@ import 'package:liser/features/home/presentation/pages/home_page.dart';
 import 'package:liser/features/library/presentation/pages/library_page.dart';
 import 'package:liser/features/library/presentation/pages/all_tracks_page.dart';
 import 'package:liser/features/library/presentation/pages/playlists_page.dart';
+import 'package:liser/features/library/presentation/pages/playlist_details_page.dart';
 import 'package:liser/features/onboarding/presentation/pages/onboarding_page.dart';
 import 'package:liser/features/settings/presentation/pages/settings_page.dart';
 import 'package:liser/features/splash/presentation/pages/splash_page.dart';
@@ -52,6 +53,15 @@ class AppRouter {
                   GoRoute(
                     path: 'playlists',
                     builder: (context, state) => const PlaylistsPage(),
+                    routes: [
+                      GoRoute(
+                        path: ':id',
+                        builder: (context, state) {
+                          final id = state.pathParameters['id']!;
+                          return PlaylistDetailsPage(playlistId: id);
+                        },
+                      ),
+                    ],
                   ),
                 ],
               ),

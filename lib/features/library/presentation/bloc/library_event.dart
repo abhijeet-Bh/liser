@@ -43,3 +43,16 @@ final class RemoveSongFromPlaylist extends LibraryEvent {
   final Playlist playlist;
   final Song song;
 }
+
+final class SetPlaylistCover extends LibraryEvent {
+  SetPlaylistCover(this.playlist, this.coverPath);
+  final Playlist playlist;
+  final String coverPath;
+}
+
+final class ReorderPlaylistSongs extends LibraryEvent {
+  ReorderPlaylistSongs(this.playlist, this.oldIndex, this.newIndex);
+  final Playlist playlist;
+  final int oldIndex;
+  final int newIndex;
+}

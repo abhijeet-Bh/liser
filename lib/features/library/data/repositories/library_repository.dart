@@ -143,6 +143,20 @@ class LibraryRepository {
     }
   }
 
+  Future<void> setPlaylistCover(Playlist playlist, String coverPath) async {
+    playlist.coverPath = coverPath;
+    await playlist.save();
+  }
+
+  Future<void> reorderPlaylistSongs(Playlist playlist, int oldIndex, int newIndex) async {
+    if (oldIndex < newIndex) {
+      newIndex -= 1;
+    }
+    final item = playlist.songIds.removeAt(oldIndex);
+    playlist.songIds.insert(newIndex, item);
+    await playlist.save();
+  }
+
   Future<void> clearLibrary() async {
     for (final song in _box.values.toList()) {
       try {

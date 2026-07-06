@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -6,6 +7,7 @@ import 'package:liser/features/library/data/models/song.dart';
 import 'package:liser/features/library/presentation/bloc/library_bloc.dart';
 import 'package:liser/features/player/presentation/bloc/player_bloc.dart';
 import 'package:liser/app/widgets/frosted_background.dart';
+import 'package:go_router/go_router.dart';
 
 class PlaylistsPage extends StatelessWidget {
   const PlaylistsPage({super.key});
@@ -77,9 +79,7 @@ class PlaylistsPage extends StatelessWidget {
     return InkWell(
       borderRadius: BorderRadius.circular(16),
       onTap: () {
-        if (favorites.isNotEmpty) {
-          context.read<PlayerBloc>().add(PlaySong(song: favorites.first, queue: favorites));
-        }
+        context.push('/library/playlists/favorites');
       },
       child: Container(
         padding: const EdgeInsets.all(16),
@@ -115,7 +115,14 @@ class PlaylistsPage extends StatelessWidget {
                 ],
               ),
             ),
-            const Icon(CupertinoIcons.play_circle_fill, color: Colors.white, size: 40),
+            GestureDetector(
+              onTap: () {
+                if (favorites.isNotEmpty) {
+                  context.read<PlayerBloc>().add(PlaySong(song: favorites.first, queue: favorites));
+                }
+              },
+              child: const Icon(CupertinoIcons.play_circle_fill, color: Colors.white, size: 40),
+            ),
           ],
         ),
       ),
@@ -136,7 +143,10 @@ class PlaylistsPage extends StatelessWidget {
               color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(CupertinoIcons.music_albums, color: Theme.of(context).colorScheme.primary),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: _buildMiniCollage(playlist, playlistSongs, context),
+            ),
           ),
           title: Text(playlist.name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
           subtitle: Text('${playlistSongs.length} Tracks', style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color)),
@@ -147,14 +157,65 @@ class PlaylistsPage extends StatelessWidget {
             },
           ),
           onTap: () {
-            if (playlistSongs.isNotEmpty) {
-              context.read<PlayerBloc>().add(PlaySong(song: playlistSongs.first, queue: playlistSongs));
-            } else {
-               ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Playlist is empty')));
-            }
+            context.push('/library/playlists/${playlist.id}');
           },
         ),
         const Divider(height: 1, thickness: 1, indent: 96, endIndent: 24, color: Colors.white10),
+      ],
+    );
+  }
+
+  Widget _buildMiniCollage(Playlist playlist, List<Song> playlistSongs, BuildContext context) {
+    if (playlist.coverPath != null && File(playlist.coverPath!).existsSync()) {
+      return Image.file(File(playlist.coverPath!), fit: BoxFit.cover, width: double.infinity, height: double.infinity);
+    }
+
+    if (playlistSongs.isEmpty) {
+      return Icon(CupertinoIcons.music_albums, color: Theme.of(context).colorScheme.primary);
+    }
+
+    final artworks = playlistSongs
+        .where((s) => s.artworkPath != null)
+        .map((s) => s.artworkPath!)
+        .toSet()
+        .take(4)
+        .toList();
+
+    if (artworks.isEmpty) {
+      return Icon(CupertinoIcons.music_albums, color: Theme.of(context).colorScheme.primary);
+    }
+
+    if (artworks.length == 1) {
+      return Image.file(File(artworks[0]), fit: BoxFit.cover, width: double.infinity, height: double.infinity);
+    }
+
+    if (artworks.length == 2 || artworks.length == 3) {
+      return Row(
+        children: [
+          Expanded(child: Image.file(File(artworks[0]), fit: BoxFit.cover, width: double.infinity, height: double.infinity)),
+          Expanded(child: Image.file(File(artworks[1]), fit: BoxFit.cover, width: double.infinity, height: double.infinity)),
+        ],
+      );
+    }
+
+    return Column(
+      children: [
+        Expanded(
+          child: Row(
+            children: [
+              Expanded(child: Image.file(File(artworks[0]), fit: BoxFit.cover, width: double.infinity, height: double.infinity)),
+              Expanded(child: Image.file(File(artworks[1]), fit: BoxFit.cover, width: double.infinity, height: double.infinity)),
+            ],
+          ),
+        ),
+        Expanded(
+          child: Row(
+            children: [
+              Expanded(child: Image.file(File(artworks[2]), fit: BoxFit.cover, width: double.infinity, height: double.infinity)),
+              Expanded(child: Image.file(File(artworks[3]), fit: BoxFit.cover, width: double.infinity, height: double.infinity)),
+            ],
+          ),
+        ),
       ],
     );
   }

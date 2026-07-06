@@ -16,10 +16,14 @@ class Playlist extends HiveObject {
   @HiveField(3)
   DateTime createdAt;
 
+  @HiveField(4)
+  String? coverPath;
+
   Playlist({
     required this.id,
     required this.name,
     required this.songIds,
     required this.createdAt,
+    this.coverPath,
   });
 }

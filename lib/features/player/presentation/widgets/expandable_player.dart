@@ -568,28 +568,65 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
                 final songIndex = state.currentIndex + 1 + index;
                 final qSong = state.queue[songIndex];
                 
-                return ListTile(
-                  key: ValueKey(qSong.id),
-                  contentPadding: EdgeInsets.zero,
-                  leading: ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child: qSong.artworkPath != null
-                        ? Image.file(
-                            File(qSong.artworkPath!),
-                            width: 40,
-                            height: 40,
-                            fit: BoxFit.cover,
-                          )
-                        : Container(
-                            width: 40,
-                            height: 40,
-                            color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                            child: const Icon(CupertinoIcons.music_note, size: 20),
+                return InkWell(
+                  key: ValueKey(qSong.id + index.toString()),
+                  onTap: () {
+                    // Play this song? The queue logic usually just jumps to it or plays it.
+                    // Let's just play it from the queue context if they tap it.
+                    context.read<PlayerBloc>().add(PlaySong(song: qSong, queue: state.queue));
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                    child: Row(
+                      children: [
+                        ReorderableDragStartListener(
+                          index: index,
+                          child: const Padding(
+                            padding: EdgeInsets.only(right: 12.0),
+                            child: Icon(CupertinoIcons.bars, color: Colors.white38),
                           ),
+                        ),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(6),
+                          child: Container(
+                            width: 48,
+                            height: 48,
+                            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                            child: qSong.artworkPath != null
+                                ? Image.file(
+                                    File(qSong.artworkPath!),
+                                    fit: BoxFit.cover,
+                                  )
+                                : const Icon(CupertinoIcons.music_note, color: Colors.grey),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                qSong.title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                qSong.artist,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: Theme.of(context).textTheme.bodySmall?.color,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  title: Text(qSong.title, maxLines: 1, overflow: TextOverflow.ellipsis),
-                  subtitle: Text(qSong.artist, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.grey, fontSize: 12)),
-                  trailing: const Icon(CupertinoIcons.bars, color: Colors.grey),
                 );
               },
             ),

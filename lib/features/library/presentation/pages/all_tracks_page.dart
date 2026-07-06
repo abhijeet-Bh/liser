@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:liser/features/library/data/models/song.dart';
+import 'package:liser/features/library/data/models/playlist.dart';
 import 'package:liser/features/library/presentation/bloc/library_bloc.dart';
 import 'package:liser/features/player/presentation/bloc/player_bloc.dart';
 import 'package:liser/app/theme/app_colors.dart';
@@ -25,6 +26,119 @@ class AllTracksPage extends StatelessWidget {
       ),
     );
   }
+
+  void _showAddToPlaylistSheet(BuildContext context, Song song, List<Playlist> playlists) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (sheetContext) {
+        return Container(
+          padding: EdgeInsets.only(
+            top: 16, 
+            bottom: MediaQuery.of(sheetContext).padding.bottom + 16,
+          ),
+          decoration: BoxDecoration(
+            color: Theme.of(sheetContext).colorScheme.surface.withValues(alpha: 0.8),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: ClipRRect(
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+              child: Material(
+                color: Colors.transparent,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.white24,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    const Text('Add to Playlist', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 16),
+                    if (playlists.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.all(32.0),
+                        child: Text('No playlists available.', style: TextStyle(color: Theme.of(sheetContext).textTheme.bodySmall?.color)),
+                      )
+                    else
+                      ConstrainedBox(
+                        constraints: BoxConstraints(
+                          maxHeight: MediaQuery.of(sheetContext).size.height * 0.7,
+                          minHeight: 150,
+                        ),
+                        child: ListView.builder(
+                          shrinkWrap: true,
+                          padding: EdgeInsets.zero,
+                          itemCount: playlists.length,
+                          itemBuilder: (context, index) {
+                          final playlist = playlists[index];
+                          final bool isAlreadyInPlaylist = playlist.songIds.contains(song.id);
+                          
+                          return ListTile(
+                            leading: Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: isAlreadyInPlaylist 
+                                    ? Colors.grey.withValues(alpha: 0.1) 
+                                    : Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Icon(
+                                CupertinoIcons.music_note_list, 
+                                color: isAlreadyInPlaylist ? Colors.grey : Theme.of(context).colorScheme.primary
+                              ),
+                            ),
+                            title: Text(
+                              playlist.name,
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: isAlreadyInPlaylist ? Colors.white38 : Colors.white,
+                              ),
+                            ),
+                            subtitle: Text(
+                              '${playlist.songIds.length} songs',
+                              style: TextStyle(
+                                color: isAlreadyInPlaylist ? Colors.white38 : Theme.of(context).textTheme.bodySmall?.color,
+                              ),
+                            ),
+                            trailing: isAlreadyInPlaylist 
+                                ? const Icon(CupertinoIcons.checkmark_alt, color: Colors.white38)
+                                : const Icon(CupertinoIcons.add_circled, color: Colors.white70),
+                            enabled: !isAlreadyInPlaylist,
+                            onTap: () {
+                              if (!isAlreadyInPlaylist) {
+                                context.read<LibraryBloc>().add(AddSongToPlaylist(playlist, song));
+                                Navigator.pop(sheetContext);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Added to ${playlist.name}'),
+                                    behavior: SnackBarBehavior.floating,
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                  ),
+                                );
+                              }
+                            },
+                          );
+                        },
+                      ),
+                    ),
+                ],
+              ), // closes Column
+            ), // closes Material
+          ), // closes BackdropFilter
+        ), // closes ClipRRect
+      ); // closes Container
+    }, // closes builder
+  ); // closes showModalBottomSheet
+}
+
 
   @override
   Widget build(BuildContext context) {
@@ -54,34 +168,6 @@ class AllTracksPage extends StatelessWidget {
           ],
         ),
         centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(CupertinoIcons.trash, color: Colors.redAccent),
-            tooltip: 'Clear Library',
-            onPressed: () {
-              showDialog(
-                context: context,
-                builder: (dialogContext) => AlertDialog(
-                  title: const Text('Clear Library', style: TextStyle(fontWeight: FontWeight.bold)),
-                  content: const Text('Are you sure you want to remove all songs and playlists? This action cannot be undone.'),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(dialogContext),
-                      child: const Text('Cancel'),
-                    ),
-                    TextButton(
-                      onPressed: () {
-                        context.read<LibraryBloc>().add(ClearLibrary());
-                        Navigator.pop(dialogContext);
-                      },
-                      child: const Text('Clear All', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-        ],
       ),
       body: FrostedBackground(
         child: SafeArea(
@@ -153,22 +239,93 @@ class AllTracksPage extends StatelessWidget {
                                   children: [
                                     SlidableAction(
                                       onPressed: (context) async {
-                                        final delete = await showDialog<bool>(
+                                        final delete = await showGeneralDialog<bool>(
                                           context: context,
-                                          builder: (context) => AlertDialog(
-                                            title: const Text('Delete Song', style: TextStyle(fontWeight: FontWeight.bold)),
-                                            content: Text('Are you sure you want to remove "${song.title}" from your library?'),
-                                            actions: [
-                                              TextButton(
-                                                onPressed: () => Navigator.of(context).pop(false),
-                                                child: const Text('Cancel'),
+                                          barrierDismissible: true,
+                                          barrierLabel: 'Dismiss',
+                                          transitionDuration: const Duration(milliseconds: 300),
+                                          pageBuilder: (context, animation, secondaryAnimation) {
+                                            return Center(
+                                              child: Container(
+                                                margin: const EdgeInsets.symmetric(horizontal: 32),
+                                                padding: const EdgeInsets.all(24),
+                                                decoration: BoxDecoration(
+                                                  color: Theme.of(context).colorScheme.surface,
+                                                  borderRadius: BorderRadius.circular(24),
+                                                  boxShadow: [
+                                                    BoxShadow(
+                                                      color: Colors.black.withValues(alpha: 0.3),
+                                                      blurRadius: 30,
+                                                      offset: const Offset(0, 15),
+                                                    ),
+                                                  ],
+                                                  border: Border.all(color: Colors.white.withValues(alpha: 0.1), width: 1),
+                                                ),
+                                                child: Material(
+                                                  color: Colors.transparent,
+                                                  child: Column(
+                                                    mainAxisSize: MainAxisSize.min,
+                                                    children: [
+                                                      Container(
+                                                        padding: const EdgeInsets.all(20),
+                                                        decoration: BoxDecoration(
+                                                          color: Colors.redAccent.withValues(alpha: 0.1),
+                                                          shape: BoxShape.circle,
+                                                        ),
+                                                        child: const Icon(CupertinoIcons.trash, size: 56, color: Colors.redAccent),
+                                                      ),
+                                                      const SizedBox(height: 24),
+                                                      const Text('Delete Song?', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                                                      const SizedBox(height: 12),
+                                                      Text(
+                                                        'Are you sure you want to remove "${song.title}" from your library?',
+                                                        textAlign: TextAlign.center,
+                                                        style: TextStyle(fontSize: 15, color: Theme.of(context).textTheme.bodySmall?.color, height: 1.4),
+                                                      ),
+                                                      const SizedBox(height: 32),
+                                                      Row(
+                                                        children: [
+                                                          Expanded(
+                                                            child: TextButton(
+                                                              onPressed: () => Navigator.pop(context, false),
+                                                              style: TextButton.styleFrom(
+                                                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                                              ),
+                                                              child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+                                                            ),
+                                                          ),
+                                                          const SizedBox(width: 16),
+                                                          Expanded(
+                                                            child: ElevatedButton(
+                                                              onPressed: () => Navigator.pop(context, true),
+                                                              style: ElevatedButton.styleFrom(
+                                                                backgroundColor: Colors.redAccent,
+                                                                foregroundColor: Colors.white,
+                                                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                                                elevation: 0,
+                                                              ),
+                                                              child: const Text('Delete', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
                                               ),
-                                              TextButton(
-                                                onPressed: () => Navigator.of(context).pop(true),
-                                                child: const Text('Delete', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+                                            );
+                                          },
+                                          transitionBuilder: (context, animation, secondaryAnimation, child) {
+                                            return FadeTransition(
+                                              opacity: animation,
+                                              child: ScaleTransition(
+                                                scale: Tween<double>(begin: 0.9, end: 1.0).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutBack)),
+                                                child: child,
                                               ),
-                                            ],
-                                          ),
+                                            );
+                                          },
                                         ) ?? false;
 
                                         if (delete) {
@@ -270,6 +427,8 @@ class AllTracksPage extends StatelessWidget {
                                               context.read<PlayerBloc>().add(AddSongNext(song));
                                             } else if (value == 'play_last') {
                                               context.read<PlayerBloc>().add(AddSongToEnd(song));
+                                            } else if (value == 'add_to_playlist') {
+                                              _showAddToPlaylistSheet(context, song, libraryState.playlists);
                                             }
                                           },
                                           itemBuilder: (context) => [
@@ -290,6 +449,17 @@ class AllTracksPage extends StatelessWidget {
                                                   Icon(CupertinoIcons.text_insert, size: 20),
                                                   SizedBox(width: 12),
                                                   Text('Play Last', style: TextStyle(fontWeight: FontWeight.w500)),
+                                                ],
+                                              ),
+                                            ),
+                                            const PopupMenuDivider(),
+                                            const PopupMenuItem(
+                                              value: 'add_to_playlist',
+                                              child: Row(
+                                                children: [
+                                                  Icon(CupertinoIcons.music_note_list, size: 20),
+                                                  SizedBox(width: 12),
+                                                  Text('Add to Playlist', style: TextStyle(fontWeight: FontWeight.w500)),
                                                 ],
                                               ),
                                             ),

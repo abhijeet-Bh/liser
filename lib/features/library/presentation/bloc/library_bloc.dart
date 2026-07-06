@@ -25,6 +25,8 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
     on<DeletePlaylist>(_onDeletePlaylist);
     on<AddSongToPlaylist>(_onAddSongToPlaylist);
     on<RemoveSongFromPlaylist>(_onRemoveSongFromPlaylist);
+    on<SetPlaylistCover>(_onSetPlaylistCover);
+    on<ReorderPlaylistSongs>(_onReorderPlaylistSongs);
   }
 
   final LibraryRepository _repository;
@@ -96,7 +98,7 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
     try {
       await _repository.toggleFavorite(event.song);
       final songs = await _repository.getSongs();
-      emit(state.copyWith(songs: songs));
+      emit(state.copyWith(songs: songs, updateCount: state.updateCount + 1));
     } catch (e) {
       // Handle error if needed
     }
@@ -109,7 +111,7 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
     try {
       await _repository.createPlaylist(event.name);
       final playlists = await _repository.getPlaylists();
-      emit(state.copyWith(playlists: playlists));
+      emit(state.copyWith(playlists: playlists, updateCount: state.updateCount + 1));
     } catch (e) {
       // Handle error
     }
@@ -122,7 +124,7 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
     try {
       await _repository.deletePlaylist(event.playlist);
       final playlists = await _repository.getPlaylists();
-      emit(state.copyWith(playlists: playlists));
+      emit(state.copyWith(playlists: playlists, updateCount: state.updateCount + 1));
     } catch (e) {
       // Handle error
     }
@@ -135,7 +137,7 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
     try {
       await _repository.addSongToPlaylist(event.playlist, event.song);
       final playlists = await _repository.getPlaylists();
-      emit(state.copyWith(playlists: playlists));
+      emit(state.copyWith(playlists: playlists, updateCount: state.updateCount + 1));
     } catch (e) {
       // Handle error
     }
@@ -148,7 +150,33 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
     try {
       await _repository.removeSongFromPlaylist(event.playlist, event.song);
       final playlists = await _repository.getPlaylists();
-      emit(state.copyWith(playlists: playlists));
+      emit(state.copyWith(playlists: playlists, updateCount: state.updateCount + 1));
+    } catch (e) {
+      // Handle error
+    }
+  }
+
+  Future<void> _onSetPlaylistCover(
+    SetPlaylistCover event,
+    Emitter<LibraryState> emit,
+  ) async {
+    try {
+      await _repository.setPlaylistCover(event.playlist, event.coverPath);
+      final playlists = await _repository.getPlaylists();
+      emit(state.copyWith(playlists: playlists, updateCount: state.updateCount + 1));
+    } catch (e) {
+      // Handle error
+    }
+  }
+
+  Future<void> _onReorderPlaylistSongs(
+    ReorderPlaylistSongs event,
+    Emitter<LibraryState> emit,
+  ) async {
+    try {
+      await _repository.reorderPlaylistSongs(event.playlist, event.oldIndex, event.newIndex);
+      final playlists = await _repository.getPlaylists();
+      emit(state.copyWith(playlists: playlists, updateCount: state.updateCount + 1));
     } catch (e) {
       // Handle error
     }
