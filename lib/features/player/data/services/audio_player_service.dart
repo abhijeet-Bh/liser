@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:just_audio/just_audio.dart';
+import 'package:just_audio_background/just_audio_background.dart';
 import 'package:liser/features/library/data/models/song.dart';
 
 class AudioPlayerService {
@@ -46,7 +47,17 @@ class AudioPlayerService {
 
     final playlist = ConcatenatingAudioSource(
       children: [
-        for (final song in songs) AudioSource.file(song.path, tag: song),
+        for (final song in songs)
+          AudioSource.file(
+            song.path,
+            tag: MediaItem(
+              id: song.id,
+              album: song.album,
+              title: song.title,
+              artist: song.artist,
+              artUri: song.artworkPath != null ? Uri.file(song.artworkPath!) : null,
+            ),
+          ),
       ],
     );
 

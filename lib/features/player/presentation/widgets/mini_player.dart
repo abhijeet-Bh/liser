@@ -55,6 +55,7 @@ class MiniPlayer extends StatelessWidget {
                       showModalBottomSheet(
                         context: context,
                         isScrollControlled: true,
+                        useSafeArea: false,
                         useRootNavigator: true,
                         backgroundColor: Colors.transparent,
                         builder: (context) => BlocProvider.value(
@@ -67,31 +68,34 @@ class MiniPlayer extends StatelessWidget {
                       padding: const EdgeInsets.all(8.0),
                       child: Row(
                         children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(10),
-                            child: Container(
-                              width: 54,
-                              height: 54,
-                              decoration: const BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [
-                                    AppColors.primary,
-                                    AppColors.primaryLight,
-                                  ],
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
+                          Hero(
+                            tag: 'artwork_${song.id}',
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(10),
+                              child: Container(
+                                width: 54,
+                                height: 54,
+                                decoration: const BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      AppColors.primary,
+                                      AppColors.primaryLight,
+                                    ],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  ),
                                 ),
+                                child:
+                                    song.artworkPath != null
+                                        ? Image.file(
+                                          File(song.artworkPath!),
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (context, error, stackTrace) {
+                                            return const Icon(Icons.music_note, color: Colors.white, size: 24);
+                                          },
+                                        )
+                                        : const Icon(Icons.music_note, color: Colors.white, size: 24),
                               ),
-                              child:
-                                  song.artworkPath != null
-                                      ? Image.file(
-                                        File(song.artworkPath!),
-                                        fit: BoxFit.cover,
-                                        errorBuilder: (context, error, stackTrace) {
-                                          return const Icon(Icons.music_note, color: Colors.white, size: 24);
-                                        },
-                                      )
-                                      : const Icon(Icons.music_note, color: Colors.white, size: 24),
                             ),
                           ),
                           const SizedBox(width: 14),

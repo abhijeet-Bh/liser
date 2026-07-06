@@ -1,22 +1,59 @@
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:liser/core/widgets/main_shell.dart';
+import 'package:liser/features/home/presentation/pages/home_page.dart';
 import 'package:liser/features/library/presentation/pages/library_page.dart';
 import 'package:liser/features/onboarding/presentation/pages/onboarding_page.dart';
+import 'package:liser/features/settings/presentation/pages/settings_page.dart';
 import 'package:liser/features/splash/presentation/pages/splash_page.dart';
+
+final _rootNavigatorKey = GlobalKey<NavigatorState>();
 
 class AppRouter {
   AppRouter._();
 
   static final GoRouter router = GoRouter(
+    navigatorKey: _rootNavigatorKey,
     initialLocation: '/',
     routes: [
-      GoRoute(path: '/', builder: (context, state) => const SplashPage()),
+      GoRoute(
+        path: '/',
+        builder: (context, state) => const SplashPage(),
+      ),
       GoRoute(
         path: '/onboarding',
         builder: (context, state) => const OnboardingPage(),
       ),
-      GoRoute(
-        path: '/library',
-        builder: (context, state) => const LibraryPage(),
+      StatefulShellRoute.indexedStack(
+        builder: (context, state, navigationShell) {
+          return MainShell(navigationShell: navigationShell);
+        },
+        branches: [
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/home',
+                builder: (context, state) => const HomePage(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/library',
+                builder: (context, state) => const LibraryPage(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
+                path: '/settings',
+                builder: (context, state) => const SettingsPage(),
+              ),
+            ],
+          ),
+        ],
       ),
     ],
   );

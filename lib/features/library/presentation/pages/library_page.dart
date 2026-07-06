@@ -2,39 +2,11 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import 'package:liser/app/di/service_locator.dart';
-import 'package:liser/core/widgets/app_scaffold.dart';
-
-import 'package:liser/features/library/data/repositories/library_repository.dart';
 import 'package:liser/features/library/presentation/bloc/library_bloc.dart';
-
-import 'package:liser/features/player/data/services/audio_player_service.dart';
 import 'package:liser/features/player/presentation/bloc/player_bloc.dart';
 
 class LibraryPage extends StatelessWidget {
   const LibraryPage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MultiBlocProvider(
-      providers: [
-        BlocProvider(
-          create:
-              (_) =>
-                  LibraryBloc(repository: sl<LibraryRepository>())
-                    ..add(LoadLibrary()),
-        ),
-        BlocProvider(
-          create: (_) => PlayerBloc(playerService: sl<AudioPlayerService>()),
-        ),
-      ],
-      child: const _LibraryView(),
-    );
-  }
-}
-
-class _LibraryView extends StatelessWidget {
-  const _LibraryView();
 
   Widget _buildFallbackIcon(BuildContext context, song) {
     if (song.title.isEmpty) return const Icon(Icons.music_note);
@@ -51,16 +23,10 @@ class _LibraryView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AppScaffold(
+    return Scaffold(
       appBar: AppBar(
         title: const Text('Library', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 28)),
         toolbarHeight: 80,
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          context.read<LibraryBloc>().add(AddSongs());
-        },
-        child: const Icon(Icons.add_rounded),
       ),
       body: BlocBuilder<LibraryBloc, LibraryState>(
         builder: (context, libraryState) {
@@ -100,7 +66,7 @@ class _LibraryView extends StatelessWidget {
                   ),
                   Expanded(
                     child: ListView.builder(
-                      padding: const EdgeInsets.only(top: 8, bottom: 100), // padding for miniplayer
+                      padding: const EdgeInsets.only(top: 8, bottom: 150), // padding for miniplayer and full-width navbar
                       itemCount: libraryState.songs.length,
                       itemBuilder: (context, index) {
                         final song = libraryState.songs[index];

@@ -30,35 +30,28 @@ class FullScreenPlayer extends StatelessWidget {
         final isDark = Theme.of(context).brightness == Brightness.dark;
 
         return SizedBox(
-          height: MediaQuery.of(context).size.height * 0.95,
+          height: MediaQuery.of(context).size.height,
           child: Container(
             decoration: BoxDecoration(
               color: Theme.of(context).scaffoldBackgroundColor,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
             ),
             child: Stack(
               children: [
                 // Background blurred artwork
                 if (song.artworkPath != null)
                   Positioned.fill(
-                    child: ClipRRect(
-                      borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-                      child: Image.file(
-                        File(song.artworkPath!),
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
-                      ),
+                    child: Image.file(
+                      File(song.artworkPath!),
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
                     ),
                   ),
                 // Frosted glass overlay
                 Positioned.fill(
-                  child: ClipRRect(
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 60.0, sigmaY: 60.0),
-                      child: Container(
-                        color: (isDark ? Colors.black : Colors.white).withValues(alpha: 0.7),
-                      ),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 60.0, sigmaY: 60.0),
+                    child: Container(
+                      color: (isDark ? Colors.black : Colors.white).withValues(alpha: 0.7),
                     ),
                   ),
                 ),
