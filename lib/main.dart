@@ -30,7 +30,10 @@ Future<void> main() async {
         BlocProvider(
           create:
               (_) =>
-                  LibraryBloc(repository: sl<LibraryRepository>())
+                  LibraryBloc(
+                    repository: sl<LibraryRepository>(),
+                    syncService: sl(),
+                  )
                     ..add(LoadLibrary()),
         ),
         BlocProvider(

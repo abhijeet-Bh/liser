@@ -43,6 +43,7 @@ dependencies:
   id3: ^1.0.2
   audio_metadata_reader: ^1.6.0
   just_audio_background: ^0.0.1-beta.17
+  shared_preferences: ^2.5.5
 dev_dependencies:
   flutter_test:
     sdk: flutter

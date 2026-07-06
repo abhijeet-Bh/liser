@@ -14,14 +14,21 @@ import 'package:liser/features/onboarding/data/services/import_service.dart';
 import 'package:liser/features/player/data/services/audio_player_service.dart';
 import 'package:liser/core/storage/services/artwork_cache_service.dart';
 
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:liser/features/onboarding/data/services/sync_service.dart';
+
 final sl = GetIt.instance;
 
 Future<void> setupDependencies() async {
+  final prefs = await SharedPreferences.getInstance();
+  sl.registerSingleton<SharedPreferences>(prefs);
+
   final hiveService = HiveService();
 
   await hiveService.init();
 
   sl.registerSingleton<HiveService>(hiveService);
+  sl.registerSingleton<SyncService>(SyncService(sharedPreferences: sl()));
 
   sl.registerLazySingleton(() => SettingsRepository());
 
@@ -41,6 +48,7 @@ Future<void> setupDependencies() async {
       scanner: sl(),
       metadataService: sl(),
       importService: sl(),
+      syncService: sl(),
     ),
   );
 

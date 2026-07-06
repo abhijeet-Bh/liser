@@ -22,13 +22,14 @@ class AppSettingsAdapter extends TypeAdapter<AppSettings> {
       dynamicColors: fields[2] as bool,
       darkMode: fields[3] as bool,
       firstLaunch: fields[4] as bool,
+      themeMode: fields[5] == null ? 0 : fields[5] as int,
     );
   }
 
   @override
   void write(BinaryWriter writer, AppSettings obj) {
     writer
-      ..writeByte(5)
+      ..writeByte(6)
       ..writeByte(0)
       ..write(obj.musicFolder)
       ..writeByte(1)
@@ -38,7 +39,9 @@ class AppSettingsAdapter extends TypeAdapter<AppSettings> {
       ..writeByte(3)
       ..write(obj.darkMode)
       ..writeByte(4)
-      ..write(obj.firstLaunch);
+      ..write(obj.firstLaunch)
+      ..writeByte(5)
+      ..write(obj.themeMode);
   }
 
   @override

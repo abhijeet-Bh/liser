@@ -10,6 +10,7 @@ part 'app_state.dart';
 class AppBloc extends Bloc<AppEvent, AppState> {
   AppBloc() : super(const AppState()) {
     on<AppStarted>(_onStarted);
+    on<UpdateThemeMode>(_onUpdateThemeMode);
   }
 
   Future<void> _onStarted(AppStarted event, Emitter<AppState> emit) async {
@@ -18,5 +19,17 @@ class AppBloc extends Bloc<AppEvent, AppState> {
     final settings = await sl<SettingsRepository>().getSettings();
 
     emit(state.copyWith(status: AppStatus.ready, settings: settings));
+  }
+
+  Future<void> _onUpdateThemeMode(UpdateThemeMode event, Emitter<AppState> emit) async {
+    final settings = state.settings;
+    if (settings != null) {
+      settings.themeMode = event.themeMode;
+      await settings.save();
+      emit(state.copyWith(
+        settings: settings, 
+        lastUpdated: DateTime.now().millisecondsSinceEpoch
+      )); // emit new state to trigger rebuild
+    }
   }
 }

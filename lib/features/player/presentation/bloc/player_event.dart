@@ -46,6 +46,11 @@ final class ToggleFavorite extends PlayerEvent {
   final Song song;
 }
 
+/// Toggle shuffle.
+final class ToggleShuffle extends PlayerEvent {
+  const ToggleShuffle();
+}
+
 /// Open queue page.
 final class OpenQueueRequested extends PlayerEvent {
   const OpenQueueRequested();

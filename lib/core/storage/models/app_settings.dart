@@ -19,11 +19,15 @@ class AppSettings extends HiveObject {
   @HiveField(4)
   bool firstLaunch;
 
+  @HiveField(5, defaultValue: 0)
+  int themeMode; // 0=system, 1=light, 2=dark
+
   AppSettings({
     this.musicFolder,
     this.autoSync = true,
     this.dynamicColors = true,
     this.darkMode = false,
     this.firstLaunch = true,
+    this.themeMode = 0,
   });
 }

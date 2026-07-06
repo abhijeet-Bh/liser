@@ -1,5 +1,12 @@
 part of 'app_bloc.dart';
 
-sealed class AppEvent {}
+sealed class AppEvent {
+  const AppEvent();
+}
 
 final class AppStarted extends AppEvent {}
+
+final class UpdateThemeMode extends AppEvent {
+  const UpdateThemeMode(this.themeMode);
+  final int themeMode;
+}

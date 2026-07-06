@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:liser/app/di/service_locator.dart';
@@ -61,7 +62,7 @@ class _OnboardingView extends StatelessWidget {
                         color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                       ),
                       child: Icon(
-                        Icons.library_music_rounded,
+                        CupertinoIcons.music_albums,
                         size: 72,
                         color: Theme.of(context).colorScheme.primary,
                       ),

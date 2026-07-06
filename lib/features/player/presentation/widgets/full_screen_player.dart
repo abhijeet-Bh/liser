@@ -7,6 +7,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:liser/features/player/presentation/bloc/player_bloc.dart';
 import 'package:liser/app/theme/app_colors.dart';
+import 'package:liser/features/player/presentation/widgets/play_queue_sheet.dart';
 
 class FullScreenPlayer extends StatelessWidget {
   const FullScreenPlayer({super.key});
@@ -137,6 +138,34 @@ class FullScreenPlayer extends StatelessWidget {
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                   ),
+                                  const SizedBox(height: 8),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: isDark ? Colors.grey[800] : Colors.grey[300],
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          song.isLossless ? CupertinoIcons.waveform_path_badge_plus : CupertinoIcons.waveform_path,
+                                          size: 14,
+                                          color: isDark ? Colors.white : Colors.black87,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          song.isLossless ? 'LOSSLESS' : 'HIGH QUALITY',
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.bold,
+                                            letterSpacing: 1,
+                                            color: isDark ? Colors.white : Colors.black87,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),
@@ -225,7 +254,42 @@ class FullScreenPlayer extends StatelessWidget {
                           ],
                         ),
                         
-                        const SizedBox(height: 32),
+                        const SizedBox(height: 24),
+
+                        // Extra Controls (Queue)
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            IconButton(
+                              icon: const Icon(CupertinoIcons.shuffle),
+                              color: state.shuffleEnabled ? AppColors.primary : Theme.of(context).textTheme.bodySmall?.color,
+                              onPressed: () {
+                                context.read<PlayerBloc>().add(ToggleShuffle());
+                              },
+                            ),
+                            IconButton(
+                              icon: const Icon(CupertinoIcons.list_bullet),
+                              color: Theme.of(context).textTheme.bodySmall?.color,
+                              onPressed: () {
+                                showModalBottomSheet(
+                                  context: context,
+                                  isScrollControlled: true,
+                                  useSafeArea: true,
+                                  backgroundColor: Colors.transparent,
+                                  builder: (modalContext) => BlocProvider.value(
+                                    value: context.read<PlayerBloc>(),
+                                    child: const FractionallySizedBox(
+                                      heightFactor: 0.7,
+                                      child: PlayQueueSheet(),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+                        
+                        const SizedBox(height: 16),
                       ],
                     ),
                   ),

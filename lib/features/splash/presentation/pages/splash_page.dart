@@ -58,7 +58,7 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
             if (state.settings!.firstLaunch) {
               context.go('/onboarding');
             } else {
-              context.go('/library');
+              context.go('/home');
             }
           });
         }

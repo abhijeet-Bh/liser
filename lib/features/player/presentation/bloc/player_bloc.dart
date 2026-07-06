@@ -30,6 +30,7 @@ class PlayerBloc extends Bloc<PlayerEvent, PlayerUiState> {
     on<SeekToPosition>(_onSeekToPosition);
     on<ReplaySong>(_onReplaySong);
     on<ToggleFavorite>(_onToggleFavorite);
+    on<ToggleShuffle>(_onToggleShuffle);
     on<OpenQueueRequested>(_onOpenQueueRequested);
 
     /// Internal events
@@ -131,6 +132,14 @@ class PlayerBloc extends Bloc<PlayerEvent, PlayerUiState> {
     if (state.currentSong?.id == event.song.id) {
       emit(state.copyWith(currentSong: event.song));
     }
+  }
+
+  Future<void> _onToggleShuffle(
+    ToggleShuffle event,
+    Emitter<PlayerUiState> emit,
+  ) async {
+    await _playerService.toggleShuffle();
+    emit(state.copyWith(shuffleEnabled: _playerService.shuffleEnabled));
   }
 
   Future<void> _onOpenQueueRequested(
