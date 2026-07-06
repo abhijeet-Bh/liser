@@ -56,6 +56,26 @@ final class OpenQueueRequested extends PlayerEvent {
   const OpenQueueRequested();
 }
 
+final class ReorderQueue extends PlayerEvent {
+  const ReorderQueue(this.oldIndex, this.newIndex);
+  final int oldIndex;
+  final int newIndex;
+}
+
+final class ClearQueue extends PlayerEvent {
+  const ClearQueue();
+}
+
+final class AddSongNext extends PlayerEvent {
+  const AddSongNext(this.song);
+  final Song song;
+}
+
+final class AddSongToEnd extends PlayerEvent {
+  const AddSongToEnd(this.song);
+  final Song song;
+}
+
 /// Internal events.
 
 final class _PlayerStateChanged extends PlayerEvent {

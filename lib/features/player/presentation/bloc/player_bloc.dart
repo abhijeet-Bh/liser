@@ -32,6 +32,10 @@ class PlayerBloc extends Bloc<PlayerEvent, PlayerUiState> {
     on<ToggleFavorite>(_onToggleFavorite);
     on<ToggleShuffle>(_onToggleShuffle);
     on<OpenQueueRequested>(_onOpenQueueRequested);
+    on<ReorderQueue>(_onReorderQueue);
+    on<ClearQueue>(_onClearQueue);
+    on<AddSongNext>(_onAddSongNext);
+    on<AddSongToEnd>(_onAddSongToEnd);
 
     /// Internal events
     on<_PlayerStateChanged>(_onPlayerStateChanged);
@@ -146,7 +150,35 @@ class PlayerBloc extends Bloc<PlayerEvent, PlayerUiState> {
     OpenQueueRequested event,
     Emitter<PlayerUiState> emit,
   ) async {
-    // Queue page will be implemented later.
+    // Handled by UI state directly in ExpandablePlayer now
+  }
+
+  Future<void> _onReorderQueue(
+    ReorderQueue event,
+    Emitter<PlayerUiState> emit,
+  ) async {
+    await _playerService.reorderQueue(event.oldIndex, event.newIndex);
+  }
+
+  Future<void> _onClearQueue(
+    ClearQueue event,
+    Emitter<PlayerUiState> emit,
+  ) async {
+    await _playerService.clearQueue();
+  }
+
+  Future<void> _onAddSongNext(
+    AddSongNext event,
+    Emitter<PlayerUiState> emit,
+  ) async {
+    await _playerService.addNext(event.song);
+  }
+
+  Future<void> _onAddSongToEnd(
+    AddSongToEnd event,
+    Emitter<PlayerUiState> emit,
+  ) async {
+    await _playerService.addToEnd(event.song);
   }
   void _onPlayerStateChanged(
     _PlayerStateChanged event,

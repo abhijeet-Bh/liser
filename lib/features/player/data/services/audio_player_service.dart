@@ -42,10 +42,12 @@ class AudioPlayerService {
 
   LoopMode get repeatMode => _player.loopMode;
 
+  ConcatenatingAudioSource? _playlist;
+
   Future<void> loadQueue(List<Song> songs, {int initialIndex = 0}) async {
     _queue = List.from(songs);
 
-    final playlist = ConcatenatingAudioSource(
+    _playlist = ConcatenatingAudioSource(
       children: [
         for (final song in songs)
           AudioSource.file(
@@ -61,7 +63,7 @@ class AudioPlayerService {
       ],
     );
 
-    await _player.setAudioSource(playlist, initialIndex: initialIndex);
+    await _player.setAudioSource(_playlist!, initialIndex: initialIndex);
 
     _currentSong = songs[initialIndex];
 
@@ -158,6 +160,59 @@ class AudioPlayerService {
 
   Future<void> setSpeed(double speed) async {
     await _player.setSpeed(speed);
+  }
+
+  Future<void> reorderQueue(int oldIndex, int newIndex) async {
+    if (_playlist == null) return;
+    if (oldIndex < newIndex) newIndex -= 1;
+    final song = _queue.removeAt(oldIndex);
+    _queue.insert(newIndex, song);
+    await _playlist!.move(oldIndex, newIndex);
+    _currentSongController.add(_currentSong);
+  }
+
+  Future<void> clearQueue() async {
+    if (_playlist == null) return;
+    final index = currentIndex;
+    if (index >= _queue.length - 1) return;
+    _queue.removeRange(index + 1, _queue.length);
+    await _playlist!.removeRange(index + 1, _playlist!.length);
+    _currentSongController.add(_currentSong);
+  }
+
+  Future<void> addNext(Song song) async {
+    if (_playlist == null) return;
+    final insertIndex = currentIndex + 1;
+    _queue.insert(insertIndex, song);
+    final audioSource = AudioSource.file(
+      song.path,
+      tag: MediaItem(
+        id: song.id,
+        album: song.album,
+        title: song.title,
+        artist: song.artist,
+        artUri: song.artworkPath != null ? Uri.file(song.artworkPath!) : null,
+      ),
+    );
+    await _playlist!.insert(insertIndex, audioSource);
+    _currentSongController.add(_currentSong);
+  }
+
+  Future<void> addToEnd(Song song) async {
+    if (_playlist == null) return;
+    _queue.add(song);
+    final audioSource = AudioSource.file(
+      song.path,
+      tag: MediaItem(
+        id: song.id,
+        album: song.album,
+        title: song.title,
+        artist: song.artist,
+        artUri: song.artworkPath != null ? Uri.file(song.artworkPath!) : null,
+      ),
+    );
+    await _playlist!.add(audioSource);
+    _currentSongController.add(_currentSong);
   }
 
   Future<void> dispose() async {
