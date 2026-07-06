@@ -2,9 +2,11 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:liser/features/library/data/models/song.dart';
 import 'package:liser/features/library/presentation/bloc/library_bloc.dart';
 import 'package:liser/features/player/presentation/bloc/player_bloc.dart';
+import 'package:liser/app/bloc/app_bloc.dart';
 import 'package:liser/app/widgets/frosted_background.dart';
 
 class HomePage extends StatefulWidget {
@@ -14,11 +16,32 @@ class HomePage extends StatefulWidget {
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
+class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   int _lastUpdateCount = -1;
   List<Song> _suggestedSongs = [];
   List<Map<String, dynamic>> _mixes = [];
   List<String> _topArtists = [];
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      setState(() {
+        _lastUpdateCount = -1;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -47,6 +70,38 @@ class _HomePageState extends State<HomePage> {
           ),
         ),
         toolbarHeight: 80,
+        actions: [
+          BlocBuilder<AppBloc, AppState>(
+            builder: (context, appState) {
+              final photoPath = appState.settings?.userPhotoPath;
+              return GestureDetector(
+                onTap: () => context.push('/profile'),
+                child: Container(
+                  width: 40,
+                  height: 40,
+                  margin: const EdgeInsets.only(right: 24),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                    image: photoPath != null
+                        ? DecorationImage(
+                            image: FileImage(File(photoPath)),
+                            fit: BoxFit.cover,
+                          )
+                        : null,
+                  ),
+                  child: photoPath == null
+                      ? Icon(
+                          CupertinoIcons.person_fill,
+                          color: Theme.of(context).colorScheme.primary,
+                          size: 20,
+                        )
+                      : null,
+                ),
+              );
+            },
+          ),
+        ],
       ),
       body: FrostedBackground(
         child: SafeArea(
@@ -100,15 +155,43 @@ class _HomePageState extends State<HomePage> {
                   });
                 }
                 
-                // 5 Random Mixes
-                int mixCount = 1;
+                // Playlist Mixes
+                List<Map<String, dynamic>> playlistMixes = [];
+                for (final playlist in state.playlists) {
+                  final playlistSongs = allSongs.where((s) => playlist.songIds.contains(s.id)).toList();
+                  if (playlistSongs.isNotEmpty) {
+                    playlistSongs.shuffle();
+                    // Each mix should be about 15 songs
+                    int numMixes = (playlistSongs.length / 15).ceil();
+                    if (numMixes == 0) numMixes = 1;
+                    
+                    for (int i = 0; i < numMixes; i++) {
+                      final chunk = playlistSongs.skip(i * 15).take(15).toList();
+                      if (chunk.isNotEmpty) {
+                        playlistMixes.add({
+                          'name': '${playlist.name} Mix ${numMixes > 1 ? (i + 1).toString() : ''}'.trim(),
+                          'songs': chunk,
+                        });
+                      }
+                    }
+                  }
+                }
+                
+                playlistMixes.shuffle();
+                for (final mix in playlistMixes) {
+                  if (_mixes.length >= 6) break;
+                  _mixes.add(mix);
+                }
+                
+                // Fill remaining with random mixes if needed
+                int randomMixCount = 1;
                 while (_mixes.length < 6) {
                   allSongs.shuffle();
                   _mixes.add({
-                    'name': 'Mix $mixCount',
+                    'name': 'Random Mix $randomMixCount',
                     'songs': allSongs.take(15).toList(),
                   });
-                  mixCount++;
+                  randomMixCount++;
                 }
 
                 _lastUpdateCount = state.updateCount;

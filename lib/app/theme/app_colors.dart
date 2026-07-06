@@ -3,8 +3,29 @@ import 'package:flutter/material.dart';
 class AppColors {
   AppColors._();
 
+  // Theme 0: Liser Purple
   static const Color primary = Color(0xFF7C3AED); // Vibrant violet
-  static const Color primaryLight = Color(0xFF9D4EDD);
+  static const Color secondary = Color(0xFF9D4EDD);
+
+  // Theme 1: Midnight Blue
+  static const Color bluePrimary = Color(0xFF2563EB);
+  static const Color blueSecondary = Color(0xFF3B82F6);
+
+  // Theme 2: Emerald Green
+  static const Color emeraldPrimary = Color(0xFF059669);
+  static const Color emeraldSecondary = Color(0xFF10B981);
+
+  static Color getPrimary(int themeId) {
+    if (themeId == 1) return bluePrimary;
+    if (themeId == 2) return emeraldPrimary;
+    return primary;
+  }
+
+  static Color getSecondary(int themeId) {
+    if (themeId == 1) return blueSecondary;
+    if (themeId == 2) return emeraldSecondary;
+    return secondary;
+  }
 
   // Backgrounds
   static const Color backgroundLight = Color(0xFFF9FAFB);

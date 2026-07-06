@@ -11,6 +11,8 @@ class AppBloc extends Bloc<AppEvent, AppState> {
   AppBloc() : super(const AppState()) {
     on<AppStarted>(_onStarted);
     on<UpdateThemeMode>(_onUpdateThemeMode);
+    on<UpdateThemeColor>(_onUpdateThemeColor);
+    on<UpdateProfile>(_onUpdateProfile);
   }
 
   Future<void> _onStarted(AppStarted event, Emitter<AppState> emit) async {
@@ -29,7 +31,32 @@ class AppBloc extends Bloc<AppEvent, AppState> {
       emit(state.copyWith(
         settings: settings, 
         lastUpdated: DateTime.now().millisecondsSinceEpoch
-      )); // emit new state to trigger rebuild
+      )); 
+    }
+  }
+
+  Future<void> _onUpdateThemeColor(UpdateThemeColor event, Emitter<AppState> emit) async {
+    final settings = state.settings;
+    if (settings != null) {
+      settings.themeColorId = event.themeColorId;
+      await settings.save();
+      emit(state.copyWith(
+        settings: settings, 
+        lastUpdated: DateTime.now().millisecondsSinceEpoch
+      )); 
+    }
+  }
+
+  Future<void> _onUpdateProfile(UpdateProfile event, Emitter<AppState> emit) async {
+    final settings = state.settings;
+    if (settings != null) {
+      if (event.userName != null) settings.userName = event.userName;
+      if (event.userPhotoPath != null) settings.userPhotoPath = event.userPhotoPath;
+      await settings.save();
+      emit(state.copyWith(
+        settings: settings, 
+        lastUpdated: DateTime.now().millisecondsSinceEpoch
+      )); 
     }
   }
 }

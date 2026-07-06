@@ -9,6 +9,7 @@ import 'package:liser/features/library/presentation/pages/playlist_details_page.
 import 'package:liser/features/onboarding/presentation/pages/onboarding_page.dart';
 import 'package:liser/features/settings/presentation/pages/settings_page.dart';
 import 'package:liser/features/splash/presentation/pages/splash_page.dart';
+import 'package:liser/features/profile/presentation/pages/profile_page.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -22,6 +23,10 @@ class AppRouter {
       GoRoute(
         path: '/',
         builder: (context, state) => const SplashPage(),
+      ),
+      GoRoute(
+        path: '/profile',
+        builder: (context, state) => const ProfilePage(),
       ),
       GoRoute(
         path: '/onboarding',

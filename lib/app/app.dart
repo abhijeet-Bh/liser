@@ -13,7 +13,10 @@ class LiserApp extends StatelessWidget {
     return BlocBuilder<AppBloc, AppState>(
       builder: (context, state) {
         ThemeMode themeMode = ThemeMode.system;
+        int themeColorId = 0;
+        
         if (state.settings != null) {
+          themeColorId = state.settings!.themeColorId;
           if (state.settings!.themeMode == 1) {
             themeMode = ThemeMode.light;
           } else if (state.settings!.themeMode == 2) {
@@ -24,8 +27,8 @@ class LiserApp extends StatelessWidget {
         return MaterialApp.router(
           title: 'Liser',
           debugShowCheckedModeBanner: false,
-          theme: theme.AppTheme.light,
-          darkTheme: theme.AppTheme.dark,
+          theme: theme.AppTheme.light(themeColorId),
+          darkTheme: theme.AppTheme.dark(themeColorId),
           themeMode: themeMode,
           routerConfig: AppRouter.router,
         );

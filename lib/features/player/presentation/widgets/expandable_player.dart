@@ -21,6 +21,10 @@ class ExpandablePlayer extends StatefulWidget {
 
 class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProviderStateMixin {
   late AnimationController _controller;
+  late Animation<double> _miniPlayerOpacityAnimation;
+  
+  bool _isDragging = false;
+  double _dragPosition = 0.0;
   late AnimationController _queueController;
   final double _miniPlayerHeight = 66.0;
   bool _isQueueMode = false;
@@ -233,51 +237,68 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
   }
 
   Widget _buildMiniPlayerUI(BuildContext context, PlayerUiState state, dynamic song) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
-      child: Row(
-        children: [
-          const SizedBox(width: 50, height: 50),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
+    return Column(
+      children: [
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12.0),
+            child: Row(
               children: [
-                Text(
-                  song.title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                const SizedBox(width: 50, height: 50),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        song.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                      ),
+                      Text(
+                        song.artist,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color, fontSize: 13),
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  song.artist,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color, fontSize: 13),
+                IconButton(
+                  onPressed: () => context.read<PlayerBloc>().add(TogglePlayPause()),
+                  icon: Icon(
+                    state.status == PlayerStatus.playing ? CupertinoIcons.pause_fill : CupertinoIcons.play_fill,
+                    size: 28,
+                  ),
+                ),
+                IconButton(
+                  onPressed: state.hasNext ? () => context.read<PlayerBloc>().add(NextSong()) : null,
+                  icon: Icon(
+                    CupertinoIcons.forward_fill,
+                    color: state.hasNext ? Theme.of(context).iconTheme.color : Theme.of(context).dividerColor,
+                    size: 22,
+                  ),
                 ),
               ],
             ),
           ),
-          IconButton(
-            onPressed: () => context.read<PlayerBloc>().add(TogglePlayPause()),
-            icon: Icon(
-              state.status == PlayerStatus.playing ? CupertinoIcons.pause_fill : CupertinoIcons.play_fill,
-              color: Theme.of(context).iconTheme.color,
-              size: 26,
+        ),
+        Padding(
+          padding: const EdgeInsets.only(bottom: 2.0),
+          child: SizedBox(
+            height: 2,
+            child: LinearProgressIndicator(
+              value: state.duration.inMilliseconds > 0 
+                  ? (state.position.inMilliseconds / state.duration.inMilliseconds).clamp(0.0, 1.0) 
+                  : 0.0,
+              backgroundColor: Colors.transparent,
+              valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.primary),
             ),
           ),
-          IconButton(
-            onPressed: state.hasNext ? () => context.read<PlayerBloc>().add(NextSong()) : null,
-            icon: Icon(
-              CupertinoIcons.forward_fill,
-              color: state.hasNext ? Theme.of(context).iconTheme.color : Theme.of(context).dividerColor,
-              size: 22,
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -327,18 +348,34 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
               const SizedBox(height: 16),
               
               SliderTheme(
-                data: SliderThemeData(
+                data: SliderTheme.of(context).copyWith(
                   trackHeight: 4,
                   thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
                   overlayShape: const RoundSliderOverlayShape(overlayRadius: 14),
-                  activeTrackColor: AppColors.primary,
-                  inactiveTrackColor: Theme.of(context).dividerColor,
-                  thumbColor: AppColors.primary,
+                  activeTrackColor: Theme.of(context).colorScheme.primary,
+                  inactiveTrackColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
+                  thumbColor: Theme.of(context).colorScheme.primary,
                 ),
                 child: Slider(
-                  value: state.position.inMilliseconds.toDouble().clamp(0.0, state.duration.inMilliseconds.toDouble() > 0 ? state.duration.inMilliseconds.toDouble() : 0.0),
+                  value: (_isDragging ? _dragPosition : state.position.inMilliseconds.toDouble())
+                      .clamp(0.0, state.duration.inMilliseconds.toDouble() > 0 ? state.duration.inMilliseconds.toDouble() : 1.0),
+                  min: 0.0,
                   max: state.duration.inMilliseconds.toDouble() > 0 ? state.duration.inMilliseconds.toDouble() : 1.0,
+                  onChangeStart: (value) {
+                    setState(() {
+                      _isDragging = true;
+                      _dragPosition = value;
+                    });
+                  },
                   onChanged: (value) {
+                    setState(() {
+                      _dragPosition = value;
+                    });
+                  },
+                  onChangeEnd: (value) {
+                    setState(() {
+                      _isDragging = false;
+                    });
                     context.read<PlayerBloc>().add(SeekToPosition(Duration(milliseconds: value.toInt())));
                   },
                 ),
@@ -349,7 +386,7 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(_formatDuration(state.position), style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodySmall?.color)),
+                    Text(_formatDuration(_isDragging ? Duration(milliseconds: _dragPosition.toInt()) : state.position), style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodySmall?.color)),
                     Text(_formatDuration(state.duration), style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodySmall?.color)),
                   ],
                 ),
@@ -361,35 +398,20 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
                   IconButton(
-                    iconSize: 32,
-                    icon: const Icon(CupertinoIcons.backward_fill),
+                    iconSize: 36,
+                    icon: const Icon(CupertinoIcons.backward_end_fill),
                     color: state.hasPrevious ? null : Theme.of(context).dividerColor,
                     onPressed: state.hasPrevious ? () => context.read<PlayerBloc>().add(PreviousSong()) : null,
                   ),
-                  Container(
-                    width: 72,
-                    height: 72,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: AppColors.primary,
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.primary.withValues(alpha: 0.4),
-                          blurRadius: 16,
-                          offset: const Offset(0, 8),
-                        ),
-                      ],
-                    ),
-                    child: IconButton(
-                      iconSize: 40,
-                      color: Colors.white,
-                      icon: Icon(state.status == PlayerStatus.playing ? CupertinoIcons.pause_solid : CupertinoIcons.play_arrow_solid),
-                      onPressed: () => context.read<PlayerBloc>().add(TogglePlayPause()),
-                    ),
+                  IconButton(
+                    iconSize: 64,
+                    color: Theme.of(context).colorScheme.primary,
+                    icon: Icon(state.status == PlayerStatus.playing ? CupertinoIcons.pause_circle_fill : CupertinoIcons.play_circle_fill),
+                    onPressed: () => context.read<PlayerBloc>().add(TogglePlayPause()),
                   ),
                   IconButton(
-                    iconSize: 32,
-                    icon: const Icon(CupertinoIcons.forward_fill),
+                    iconSize: 36,
+                    icon: const Icon(CupertinoIcons.forward_end_fill),
                     color: state.hasNext ? null : Theme.of(context).dividerColor,
                     onPressed: state.hasNext ? () => context.read<PlayerBloc>().add(NextSong()) : null,
                   ),
@@ -691,8 +713,8 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
                     offset: Offset(0, 12 * curvedValue),
                   )
                 ],
-                gradient: const LinearGradient(
-                  colors: [AppColors.primary, AppColors.primaryLight],
+                gradient: LinearGradient(
+                  colors: [Theme.of(context).colorScheme.primary, Theme.of(context).colorScheme.secondary],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),

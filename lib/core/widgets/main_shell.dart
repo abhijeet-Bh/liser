@@ -34,7 +34,7 @@ class MainShell extends StatelessWidget {
                 filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
                 child: Container(
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.surface.withValues(alpha: 0.75),
+                    color: theme.colorScheme.primary.withValues(alpha: theme.brightness == Brightness.light ? 0.08 : 0.05),
                     border: Border(
                       top: BorderSide(
                         color: theme.colorScheme.onSurface.withValues(alpha: 0.05),

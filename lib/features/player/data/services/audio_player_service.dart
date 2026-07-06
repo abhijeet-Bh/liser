@@ -76,6 +76,13 @@ class AudioPlayerService {
 
       if (index < 0 || index >= _queue.length) return;
 
+      // Workaround for just_audio emitting phantom index 0 on pause
+      if (index == 0 && _currentSong != null && _queue.indexOf(_currentSong!) > 0 && !_player.playing) {
+        if (_player.position.inMilliseconds > 500) {
+          return; // Ignore phantom 0
+        }
+      }
+
       _currentSong = _queue[index];
 
       _currentSongController.add(_currentSong);

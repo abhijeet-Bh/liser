@@ -43,8 +43,8 @@ class _OnboardingView extends StatelessWidget {
               end: Alignment.bottomRight,
               colors: [
                 Theme.of(context).colorScheme.surface,
-                Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-                Theme.of(context).colorScheme.surface,
+                Theme.of(context).colorScheme.primary.withValues(alpha: Theme.of(context).brightness == Brightness.light ? 0.3 : 0.1),
+                Theme.of(context).colorScheme.secondary.withValues(alpha: Theme.of(context).brightness == Brightness.light ? 0.15 : 0.05),
               ],
             ),
           ),

@@ -1,7 +1,5 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:liser/app/theme/app_colors.dart';
-
 class FrostedBackground extends StatelessWidget {
   final Widget child;
 
@@ -9,6 +7,7 @@ class FrostedBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isLight = Theme.of(context).brightness == Brightness.light;
     return Stack(
       children: [
         // Background Gradient
@@ -16,8 +15,8 @@ class FrostedBackground extends StatelessWidget {
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
-                AppColors.primary.withValues(alpha: 0.2),
-                Theme.of(context).colorScheme.surface,
+                Theme.of(context).colorScheme.primary.withValues(alpha: isLight ? 0.4 : 0.2),
+                Theme.of(context).colorScheme.secondary.withValues(alpha: isLight ? 0.25 : 0.1),
                 Theme.of(context).colorScheme.surface,
               ],
               begin: Alignment.topLeft,

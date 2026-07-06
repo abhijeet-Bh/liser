@@ -5,16 +5,17 @@ import 'package:liser/app/theme/app_colors.dart';
 class AppTheme {
   AppTheme._();
 
-  static ThemeData get light {
+  static ThemeData light(int themeColorId) {
+    final primary = AppColors.getPrimary(themeColorId);
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
       scaffoldBackgroundColor: AppColors.backgroundLight,
       colorScheme: ColorScheme.fromSeed(
-        seedColor: AppColors.primary,
+        seedColor: primary,
         brightness: Brightness.light,
         surface: AppColors.surfaceLight,
-      ),
+      ).copyWith(secondary: AppColors.getSecondary(themeColorId)),
       textTheme: GoogleFonts.interTextTheme(ThemeData.light().textTheme),
       appBarTheme: const AppBarTheme(
         backgroundColor: Colors.transparent,
@@ -29,17 +30,18 @@ class AppTheme {
     );
   }
 
-  static ThemeData get dark {
+  static ThemeData dark(int themeColorId) {
+    final primary = AppColors.getPrimary(themeColorId);
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
       scaffoldBackgroundColor: AppColors.backgroundDark,
       colorScheme: ColorScheme.fromSeed(
-        seedColor: AppColors.primary,
+        seedColor: primary,
         brightness: Brightness.dark,
         surface: AppColors.surfaceDark,
         surfaceContainerHighest: AppColors.surfaceElevatedDark,
-      ),
+      ).copyWith(secondary: AppColors.getSecondary(themeColorId)),
       textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme).apply(
         bodyColor: AppColors.textPrimaryDark,
         displayColor: AppColors.textPrimaryDark,
