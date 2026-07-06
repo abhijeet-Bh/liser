@@ -41,77 +41,84 @@ class _AllTracksPageState extends State<AllTracksPage> {
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (sheetContext) {
-        return Container(
-          padding: EdgeInsets.only(
-            top: 16, 
-            bottom: MediaQuery.of(sheetContext).padding.bottom + 16,
-          ),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surface,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 40,
-                height: 4,
-                margin: const EdgeInsets.only(bottom: 24),
-                decoration: BoxDecoration(
-                  color: Colors.grey.withOpacity(0.3),
-                  borderRadius: BorderRadius.circular(2),
-                ),
+        return DraggableScrollableSheet(
+          initialChildSize: 0.5,
+          minChildSize: 0.3,
+          maxChildSize: 0.9,
+          expand: false,
+          builder: (_, scrollController) {
+            return Container(
+              padding: const EdgeInsets.only(top: 16),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surface,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
               ),
-              const Text(
-                'Add to Playlist',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 16),
-              if (playlists.isEmpty)
-                const Padding(
-                  padding: EdgeInsets.all(32.0),
-                  child: Text('No playlists created yet.'),
-                )
-              else
-                Flexible(
-                  child: ListView.builder(
-                    shrinkWrap: true,
-                    itemCount: playlists.length,
-                    itemBuilder: (context, index) {
-                      final playlist = playlists[index];
-                      return ListTile(
-                        leading: Container(
-                          width: 48,
-                          height: 48,
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Icon(
-                            CupertinoIcons.music_note_list,
-                            color: Theme.of(context).colorScheme.primary,
-                          ),
+              child: Column(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 4,
+                    margin: const EdgeInsets.only(bottom: 24),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.withOpacity(0.3),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const Text(
+                    'Add to Playlist',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  if (playlists.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.all(32.0),
+                      child: Text('No playlists created yet.'),
+                    )
+                  else
+                    Expanded(
+                      child: ListView.builder(
+                        controller: scrollController,
+                        padding: EdgeInsets.only(
+                          bottom: MediaQuery.of(sheetContext).padding.bottom + 120,
                         ),
-                        title: Text(playlist.name),
-                        subtitle: Text('${playlist.songIds.length} songs'),
-                        onTap: () {
-                          context.read<LibraryBloc>().add(
-                                AddSongToPlaylist(playlist, song),
+                        itemCount: playlists.length,
+                        itemBuilder: (context, index) {
+                          final playlist = playlists[index];
+                          return ListTile(
+                            leading: Container(
+                              width: 48,
+                              height: 48,
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Icon(
+                                CupertinoIcons.music_note_list,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                            ),
+                            title: Text(playlist.name),
+                            subtitle: Text('${playlist.songIds.length} songs'),
+                            onTap: () {
+                              context.read<LibraryBloc>().add(
+                                    AddSongToPlaylist(playlist, song),
+                                  );
+                              Navigator.pop(sheetContext);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Added to ${playlist.name}')),
                               );
-                          Navigator.pop(sheetContext);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Added to ${playlist.name}')),
+                            },
                           );
                         },
-                      );
-                    },
-                  ),
-                ),
-            ],
-          ),
+                      ),
+                    ),
+                ],
+              ),
+            );
+          },
         );
       },
     ); 
@@ -338,11 +345,35 @@ class _AllTracksPageState extends State<AllTracksPage> {
                                               color: Theme.of(context).colorScheme.surface,
                                               elevation: 8,
                                               onSelected: (value) {
-                                                if (value == 'add_to_playlist') {
+                                                if (value == 'play_next') {
+                                                  context.read<PlayerBloc>().add(AddSongNext(song));
+                                                } else if (value == 'add_to_last') {
+                                                  context.read<PlayerBloc>().add(AddSongToEnd(song));
+                                                } else if (value == 'add_to_playlist') {
                                                   _showAddToPlaylistSheet(context, song, libraryState.playlists);
                                                 }
                                               },
                                               itemBuilder: (context) => [
+                                                const PopupMenuItem(
+                                                  value: 'play_next',
+                                                  child: Row(
+                                                    children: [
+                                                      Icon(CupertinoIcons.arrow_right_to_line, size: 20),
+                                                      SizedBox(width: 12),
+                                                      Text('Play Next'),
+                                                    ],
+                                                  ),
+                                                ),
+                                                const PopupMenuItem(
+                                                  value: 'add_to_last',
+                                                  child: Row(
+                                                    children: [
+                                                      Icon(CupertinoIcons.text_append, size: 20),
+                                                      SizedBox(width: 12),
+                                                      Text('Add to Last'),
+                                                    ],
+                                                  ),
+                                                ),
                                                 const PopupMenuItem(
                                                   value: 'add_to_playlist',
                                                   child: Row(
