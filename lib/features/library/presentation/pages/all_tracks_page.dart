@@ -28,6 +28,34 @@ class AllTracksPage extends StatelessWidget {
       appBar: AppBar(
         title: const Text('All Tracks', style: TextStyle(fontWeight: FontWeight.w700)),
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(CupertinoIcons.trash, color: Colors.redAccent),
+            tooltip: 'Clear Library',
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (dialogContext) => AlertDialog(
+                  title: const Text('Clear Library', style: TextStyle(fontWeight: FontWeight.bold)),
+                  content: const Text('Are you sure you want to remove all songs and playlists? This action cannot be undone.'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(dialogContext),
+                      child: const Text('Cancel'),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        context.read<LibraryBloc>().add(ClearLibrary());
+                        Navigator.pop(dialogContext);
+                      },
+                      child: const Text('Clear All', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ],
       ),
       body: BlocBuilder<LibraryBloc, LibraryState>(
         builder: (context, libraryState) {

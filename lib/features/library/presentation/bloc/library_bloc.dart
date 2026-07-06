@@ -18,6 +18,7 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
     on<LoadLibrary>(_onLoadLibrary);
     on<AddSongs>(_onAddSongs);
     on<RemoveSong>(_onRemoveSong);
+    on<ClearLibrary>(_onClearLibrary);
     on<SyncLibraryFolder>(_onSyncLibraryFolder);
     on<LibraryToggleFavorite>(_onToggleFavorite);
     on<CreatePlaylist>(_onCreatePlaylist);
@@ -60,17 +61,15 @@ class LibraryBloc extends Bloc<LibraryEvent, LibraryState> {
     }
   }
 
-  Future<void> _onRemoveSong(
-    RemoveSong event,
-    Emitter<LibraryState> emit,
-  ) async {
-    try {
-      await _repository.removeSong(event.song);
-      final songs = await _repository.getSongs();
-      emit(state.copyWith(status: LibraryStatus.loaded, songs: songs));
-    } catch (e) {
-      emit(state.copyWith(status: LibraryStatus.failure, error: e.toString()));
-    }
+  Future<void> _onRemoveSong(RemoveSong event, Emitter<LibraryState> emit) async {
+    await _repository.removeSong(event.song);
+    add(LoadLibrary());
+  }
+
+  Future<void> _onClearLibrary(ClearLibrary event, Emitter<LibraryState> emit) async {
+    emit(state.copyWith(status: LibraryStatus.loading));
+    await _repository.clearLibrary();
+    add(LoadLibrary());
   }
 
   Future<void> _onSyncLibraryFolder(

@@ -142,4 +142,25 @@ class LibraryRepository {
       await playlist.save();
     }
   }
+
+  Future<void> clearLibrary() async {
+    for (final song in _box.values.toList()) {
+      try {
+        final audioFile = File(song.path);
+        if (await audioFile.exists()) {
+          await audioFile.delete();
+        }
+        if (song.artworkPath != null) {
+          final artworkFile = File(song.artworkPath!);
+          if (await artworkFile.exists()) {
+            await artworkFile.delete();
+          }
+        }
+      } catch (e) {
+        // Ignore file deletion errors
+      }
+    }
+    await _box.clear();
+    await _playlistsBox.clear();
+  }
 }

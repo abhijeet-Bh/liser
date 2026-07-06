@@ -1,15 +1,19 @@
 part of 'library_bloc.dart';
 
-sealed class LibraryEvent {}
+sealed class LibraryEvent {
+  const LibraryEvent();
+}
 
 final class LoadLibrary extends LibraryEvent {}
 
 final class AddSongs extends LibraryEvent {}
 
 final class RemoveSong extends LibraryEvent {
-  RemoveSong(this.song);
+  const RemoveSong(this.song);
   final Song song;
 }
+
+final class ClearLibrary extends LibraryEvent {}
 
 final class SyncLibraryFolder extends LibraryEvent {}
 
