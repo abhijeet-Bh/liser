@@ -87,35 +87,51 @@ class _OnboardingView extends StatelessWidget {
                     const SizedBox(height: 56),
                     BlocBuilder<OnboardingBloc, OnboardingState>(
                       builder: (context, state) {
-                        return SizedBox(
-                          width: double.infinity,
-                          child: FilledButton(
-                            style: FilledButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 18),
-                              elevation: 8,
-                              shadowColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
+                        return Column(
+                          children: [
+                            SizedBox(
+                              width: double.infinity,
+                              child: FilledButton(
+                                style: FilledButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(vertical: 18),
+                                  elevation: 8,
+                                  shadowColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5),
+                                ),
+                                onPressed: state.status == OnboardingStatus.loading
+                                    ? null
+                                    : () {
+                                        context.read<OnboardingBloc>().add(
+                                          PickMusicFolderPressed(),
+                                        );
+                                      },
+                                child: state.status == OnboardingStatus.loading
+                                    ? const SizedBox(
+                                        width: 24,
+                                        height: 24,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2.5,
+                                          color: Colors.white,
+                                        ),
+                                      )
+                                    : const Text(
+                                        'Choose Music Folder',
+                                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                                      ),
+                              ),
                             ),
-                            onPressed: state.status == OnboardingStatus.loading
-                                ? null
-                                : () {
-                                    context.read<OnboardingBloc>().add(
-                                      PickMusicFolderPressed(),
-                                    );
-                                  },
-                            child: state.status == OnboardingStatus.loading
-                                ? const SizedBox(
-                                    width: 24,
-                                    height: 24,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2.5,
-                                      color: Colors.white,
-                                    ),
-                                  )
-                                : const Text(
-                                    'Choose Music Folder',
-                                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                                  ),
-                          ),
+                            const SizedBox(height: 16),
+                            TextButton(
+                              onPressed: state.status == OnboardingStatus.loading
+                                  ? null
+                                  : () {
+                                      context.read<OnboardingBloc>().add(SkipOnboarding());
+                                    },
+                              child: const Text(
+                                "I'll do it later",
+                                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+                              ),
+                            ),
+                          ],
                         );
                       },
                     ),

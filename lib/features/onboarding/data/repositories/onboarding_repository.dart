@@ -24,4 +24,10 @@ class OnboardingRepository {
 
     return imported;
   }
+
+  Future<void> skipOnboarding() async {
+    final settings = await _settingsRepository.getSettings();
+    settings.firstLaunch = false;
+    await _settingsRepository.save(settings);
+  }
 }

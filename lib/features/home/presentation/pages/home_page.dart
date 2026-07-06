@@ -8,6 +8,9 @@ import 'package:liser/features/library/presentation/bloc/library_bloc.dart';
 import 'package:liser/features/player/presentation/bloc/player_bloc.dart';
 import 'package:liser/app/bloc/app_bloc.dart';
 import 'package:liser/app/widgets/frosted_background.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:liser/app/di/service_locator.dart';
+import 'package:liser/core/services/artist_image_service.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -436,44 +439,108 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         separatorBuilder: (context, index) => const SizedBox(width: 24),
         itemBuilder: (context, index) {
           final artist = artists[index];
-          return Column(
-            children: [
-              Container(
-                width: 110,
-                height: 110,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.2),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.1),
-                      blurRadius: 12,
-                      offset: const Offset(0, 6),
-                    ),
-                  ],
-                ),
-                child: Center(
-                  child: Icon(
-                    CupertinoIcons.person_alt,
-                    size: 40,
-                    color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.5),
+          return GestureDetector(
+            onTap: () {
+              context.push('/library/all', extra: artist);
+            },
+            child: Column(
+              children: [
+                _ArtistAvatar(artist: artist),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: 110,
+                  child: Text(
+                    artist,
+                    maxLines: 1,
+                    textAlign: TextAlign.center,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
                   ),
                 ),
-              ),
-              const SizedBox(height: 12),
-              SizedBox(
-                width: 110,
-                child: Text(
-                  artist,
-                  maxLines: 1,
-                  textAlign: TextAlign.center,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-                ),
-              ),
-            ],
+              ],
+            ),
           );
         },
+      ),
+    );
+  }
+}
+
+class _ArtistAvatar extends StatefulWidget {
+  final String artist;
+
+  const _ArtistAvatar({required this.artist});
+
+  @override
+  State<_ArtistAvatar> createState() => _ArtistAvatarState();
+}
+
+class _ArtistAvatarState extends State<_ArtistAvatar> {
+  String? _imageUrl;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadImage();
+  }
+
+  Future<void> _loadImage() async {
+    final service = sl<ArtistImageService>();
+    final url = await service.getArtistImageUrl(widget.artist);
+    if (mounted) {
+      setState(() {
+        _imageUrl = url;
+        _isLoading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 110,
+      height: 110,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.2),
+        boxShadow: [
+          BoxShadow(
+            color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.1),
+            blurRadius: 12,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: _isLoading
+          ? Center(
+              child: SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.5),
+                ),
+              ),
+            )
+          : _imageUrl != null
+              ? CachedNetworkImage(
+                  imageUrl: _imageUrl!,
+                  fit: BoxFit.cover,
+                  placeholder: (context, url) => _buildFallback(context),
+                  errorWidget: (context, url, error) => _buildFallback(context),
+                )
+              : _buildFallback(context),
+    );
+  }
+
+  Widget _buildFallback(BuildContext context) {
+    return Center(
+      child: Icon(
+        CupertinoIcons.person_alt,
+        size: 40,
+        color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.5),
       ),
     );
   }

@@ -12,7 +12,8 @@ import 'package:liser/app/widgets/frosted_background.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 
 class AllTracksPage extends StatelessWidget {
-  const AllTracksPage({super.key});
+  final String? artistFilter;
+  const AllTracksPage({super.key, this.artistFilter});
 
   Widget _buildFallbackIcon(BuildContext context, Song song) {
     if (song.title.isEmpty) return const Icon(CupertinoIcons.music_note, color: Colors.grey);
@@ -149,12 +150,13 @@ class AllTracksPage extends StatelessWidget {
         elevation: 0,
         title: Column(
           children: [
-            const Text('All Tracks', style: TextStyle(fontWeight: FontWeight.w700)),
+            Text(artistFilter ?? 'All Tracks', style: const TextStyle(fontWeight: FontWeight.w700)),
             BlocBuilder<LibraryBloc, LibraryState>(
               builder: (context, state) {
-                if (state.status == LibraryStatus.loaded && state.songs.isNotEmpty) {
+                final filteredSongs = artistFilter != null ? state.songs.where((s) => s.artist == artistFilter).toList() : state.songs;
+                if (state.status == LibraryStatus.loaded && filteredSongs.isNotEmpty) {
                   return Text(
-                    '${state.songs.length} Tracks',
+                    '${filteredSongs.length} Tracks',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
@@ -181,7 +183,8 @@ class AllTracksPage extends StatelessWidget {
                     return Center(child: Text(libraryState.error ?? 'Unknown error'));
 
                   case LibraryStatus.loaded:
-                    if (libraryState.songs.isEmpty) {
+                    final filteredSongs = artistFilter != null ? libraryState.songs.where((s) => s.artist == artistFilter).toList() : libraryState.songs;
+                    if (filteredSongs.isEmpty) {
                       return Center(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -200,7 +203,7 @@ class AllTracksPage extends StatelessWidget {
                         Expanded(
                           child: ListView.separated(
                             padding: const EdgeInsets.only(top: 8, bottom: 150),
-                            itemCount: libraryState.songs.length,
+                            itemCount: filteredSongs.length,
                             separatorBuilder: (context, index) => const Divider(
                               height: 1, 
                               thickness: 1, 
@@ -209,7 +212,7 @@ class AllTracksPage extends StatelessWidget {
                               color: Colors.white10
                             ),
                             itemBuilder: (context, index) {
-                              final song = libraryState.songs[index];
+                              final song = filteredSongs[index];
 
                               return Slidable(
                                 key: ValueKey(song.id),
@@ -343,7 +346,7 @@ class AllTracksPage extends StatelessWidget {
                                 child: InkWell(
                                   onTap: () {
                                     context.read<PlayerBloc>().add(
-                                          PlaySong(song: song, queue: libraryState.songs),
+                                          PlaySong(song: song, queue: filteredSongs),
                                         );
                                   },
                                   child: Padding(

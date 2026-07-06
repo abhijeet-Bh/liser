@@ -16,10 +16,12 @@ import 'package:liser/core/storage/services/artwork_cache_service.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:liser/features/onboarding/data/services/sync_service.dart';
+import 'package:liser/core/services/artist_image_service.dart';
 
 final sl = GetIt.instance;
 
 Future<void> setupDependencies() async {
+  sl.registerLazySingleton(() => ArtistImageService());
   final prefs = await SharedPreferences.getInstance();
   sl.registerSingleton<SharedPreferences>(prefs);
 

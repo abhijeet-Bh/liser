@@ -10,6 +10,7 @@ class OnboardingBloc extends Bloc<OnboardingEvent, OnboardingState> {
     : _repository = repository,
       super(const OnboardingState()) {
     on<PickMusicFolderPressed>(_pickFolder);
+    on<SkipOnboarding>(_skipOnboarding);
   }
 
   final OnboardingRepository _repository;
@@ -32,5 +33,13 @@ class OnboardingBloc extends Bloc<OnboardingEvent, OnboardingState> {
     } catch (e) {
       emit(state.copyWith(status: OnboardingStatus.error, error: e.toString()));
     }
+  }
+
+  Future<void> _skipOnboarding(
+    SkipOnboarding event,
+    Emitter<OnboardingState> emit,
+  ) async {
+    await _repository.skipOnboarding();
+    emit(state.copyWith(status: OnboardingStatus.folderSelected));
   }
 }

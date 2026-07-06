@@ -106,9 +106,13 @@ class _PlaylistDetailsPageState extends State<PlaylistDetailsPage> {
         Playlist? playlist;
         List<Song> playlistSongs = [];
         final isFavorites = widget.playlistId == 'favorites';
+        final isAlbum = widget.playlistId.startsWith('album_');
+        final albumName = isAlbum ? widget.playlistId.substring(6) : null;
 
         if (isFavorites) {
           playlistSongs = state.songs.where((s) => s.favorite).toList();
+        } else if (isAlbum) {
+          playlistSongs = state.songs.where((s) => s.album == albumName).toList();
         } else {
           final playlistIndex = state.playlists.indexWhere((p) => p.id == widget.playlistId);
           if (playlistIndex == -1) {
@@ -137,16 +141,16 @@ class _PlaylistDetailsPageState extends State<PlaylistDetailsPage> {
                   ),
                   flexibleSpace: FlexibleSpaceBar(
                     title: Text(
-                      isFavorites ? 'Favorites' : playlist!.name,
+                      isFavorites ? 'Favorites' : (isAlbum ? albumName! : playlist!.name),
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                     centerTitle: true,
                     background: GestureDetector(
-                      onTap: isFavorites ? null : () => _pickCover(context, playlist!),
+                      onTap: (isFavorites || isAlbum) ? null : () => _pickCover(context, playlist!),
                       child: Stack(
                         fit: StackFit.expand,
                         children: [
-                          (!isFavorites && playlist!.coverPath != null && File(playlist.coverPath!).existsSync())
+                          (!isFavorites && !isAlbum && playlist!.coverPath != null && File(playlist.coverPath!).existsSync())
                               ? Image.file(File(playlist.coverPath!), fit: BoxFit.cover)
                               : _buildDynamicCollage(playlistSongs, MediaQuery.of(context).size.width),
                           // Dark gradient overlay to make title and icons visible
@@ -163,7 +167,7 @@ class _PlaylistDetailsPageState extends State<PlaylistDetailsPage> {
                               ),
                             ),
                           ),
-                          if (!isFavorites)
+                          if (!isFavorites && !isAlbum)
                             Positioned(
                               bottom: 16,
                               right: 16,

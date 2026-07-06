@@ -53,7 +53,10 @@ class AppRouter {
                 routes: [
                   GoRoute(
                     path: 'all',
-                    builder: (context, state) => const AllTracksPage(),
+                    builder: (context, state) {
+                      final artistFilter = state.extra as String?;
+                      return AllTracksPage(artistFilter: artistFilter);
+                    },
                   ),
                   GoRoute(
                     path: 'playlists',
