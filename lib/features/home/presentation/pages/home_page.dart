@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:liser/features/library/data/models/song.dart';
 import 'package:liser/features/library/presentation/bloc/library_bloc.dart';
 import 'package:liser/features/player/presentation/bloc/player_bloc.dart';
+import 'package:liser/app/widgets/frosted_background.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -12,57 +13,64 @@ class HomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
         title: const Text('Home', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 28)),
         toolbarHeight: 80,
       ),
-      body: BlocBuilder<LibraryBloc, LibraryState>(
-        builder: (context, state) {
-          if (state.status == LibraryStatus.loading) {
-            return const Center(child: CircularProgressIndicator());
-          }
+      body: FrostedBackground(
+        child: SafeArea(
+          child: BlocBuilder<LibraryBloc, LibraryState>(
+            builder: (context, state) {
+              if (state.status == LibraryStatus.loading) {
+                return const Center(child: CircularProgressIndicator());
+              }
 
-          if (state.songs.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+              if (state.songs.isEmpty) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(CupertinoIcons.music_note_list, size: 64, color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5)),
+                      const SizedBox(height: 16),
+                      Text('Your library is empty', style: Theme.of(context).textTheme.titleMedium),
+                      const SizedBox(height: 8),
+                      Text('Go to Settings to import music.', style: Theme.of(context).textTheme.bodyMedium),
+                    ],
+                  ),
+                );
+              }
+
+              final allSongs = List<Song>.from(state.songs);
+              allSongs.shuffle();
+              final suggestedSongs = allSongs.take(10).toList();
+
+              final artistCounts = <String, int>{};
+              for (final song in state.songs) {
+                if (song.artist.isNotEmpty) {
+                  artistCounts[song.artist] = (artistCounts[song.artist] ?? 0) + 1;
+                }
+              }
+              final sortedArtists = artistCounts.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
+              final topArtists = sortedArtists.take(10).map((e) => e.key).toList();
+
+              return ListView(
+                padding: const EdgeInsets.only(bottom: 150),
                 children: [
-                  Icon(CupertinoIcons.music_note_list, size: 64, color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.5)),
-                  const SizedBox(height: 16),
-                  Text('Your library is empty', style: Theme.of(context).textTheme.titleMedium),
-                  const SizedBox(height: 8),
-                  Text('Go to Settings to import music.', style: Theme.of(context).textTheme.bodyMedium),
+                  _buildSectionTitle(context, 'Suggested Songs'),
+                  _buildSuggestedSongs(context, suggestedSongs),
+                  const SizedBox(height: 32),
+                  if (topArtists.isNotEmpty) ...[
+                    _buildSectionTitle(context, 'Top Artists'),
+                    _buildTopArtists(context, topArtists),
+                  ]
                 ],
-              ),
-            );
-          }
-
-          final allSongs = List<Song>.from(state.songs);
-          allSongs.shuffle();
-          final suggestedSongs = allSongs.take(10).toList();
-
-          final artistCounts = <String, int>{};
-          for (final song in state.songs) {
-            if (song.artist.isNotEmpty) {
-              artistCounts[song.artist] = (artistCounts[song.artist] ?? 0) + 1;
-            }
-          }
-          final sortedArtists = artistCounts.entries.toList()..sort((a, b) => b.value.compareTo(a.value));
-          final topArtists = sortedArtists.take(10).map((e) => e.key).toList();
-
-          return ListView(
-            padding: const EdgeInsets.only(bottom: 150),
-            children: [
-              _buildSectionTitle(context, 'Suggested Songs'),
-              _buildSuggestedSongs(context, suggestedSongs),
-              const SizedBox(height: 32),
-              if (topArtists.isNotEmpty) ...[
-                _buildSectionTitle(context, 'Top Artists'),
-                _buildTopArtists(context, topArtists),
-              ]
-            ],
-          );
-        },
+              );
+            },
+          ),
+        ),
       ),
     );
   }

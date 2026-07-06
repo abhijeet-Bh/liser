@@ -155,13 +155,18 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
                           },
                           child: Container(
                             decoration: BoxDecoration(
-                              color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.95 + 0.05 * curvedValue),
+                              color: Theme.of(context).colorScheme.surface, // Solid color to stand out from blur
                               borderRadius: BorderRadius.circular(12 + 24 * curvedValue),
+                              border: Border.all(
+                                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1 - (0.1 * curvedValue)),
+                                width: 1,
+                              ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.08 + 0.2 * curvedValue),
-                                  blurRadius: 10 + 20 * curvedValue,
-                                  offset: const Offset(0, -2),
+                                  color: Colors.black.withValues(alpha: 0.2 + 0.1 * curvedValue),
+                                  blurRadius: 20 + 20 * curvedValue,
+                                  spreadRadius: 2 * (1 - curvedValue),
+                                  offset: const Offset(0, 8),
                                 ),
                               ],
                             ),

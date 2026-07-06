@@ -1,22 +1,25 @@
 import 'dart:io';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:liser/features/library/data/models/song.dart';
 import 'package:liser/features/library/presentation/bloc/library_bloc.dart';
 import 'package:liser/features/player/presentation/bloc/player_bloc.dart';
+import 'package:liser/app/theme/app_colors.dart';
+import 'package:liser/app/widgets/frosted_background.dart';
 
 class AllTracksPage extends StatelessWidget {
   const AllTracksPage({super.key});
 
   Widget _buildFallbackIcon(BuildContext context, Song song) {
-    if (song.title.isEmpty) return const Icon(CupertinoIcons.music_note);
+    if (song.title.isEmpty) return const Icon(CupertinoIcons.music_note, color: Colors.grey);
     return Center(
       child: Text(
         song.title[0].toUpperCase(),
-        style: TextStyle(
+        style: const TextStyle(
           fontWeight: FontWeight.bold,
-          color: Theme.of(context).colorScheme.primary,
+          color: Colors.grey,
         ),
       ),
     );
@@ -25,8 +28,30 @@ class AllTracksPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('All Tracks', style: TextStyle(fontWeight: FontWeight.w700)),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: Column(
+          children: [
+            const Text('All Tracks', style: TextStyle(fontWeight: FontWeight.w700)),
+            BlocBuilder<LibraryBloc, LibraryState>(
+              builder: (context, state) {
+                if (state.status == LibraryStatus.loaded && state.songs.isNotEmpty) {
+                  return Text(
+                    '${state.songs.length} Tracks',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: Theme.of(context).textTheme.bodySmall?.color,
+                    ),
+                  );
+                }
+                return const SizedBox.shrink();
+              },
+            ),
+          ],
+        ),
         centerTitle: true,
         actions: [
           IconButton(
@@ -57,184 +82,234 @@ class AllTracksPage extends StatelessWidget {
           ),
         ],
       ),
-      body: BlocBuilder<LibraryBloc, LibraryState>(
-        builder: (context, libraryState) {
-          switch (libraryState.status) {
-            case LibraryStatus.loading:
-              return const Center(child: CircularProgressIndicator());
+      body: FrostedBackground(
+        child: SafeArea(
+          child: BlocBuilder<LibraryBloc, LibraryState>(
+              builder: (context, libraryState) {
+                switch (libraryState.status) {
+                  case LibraryStatus.loading:
+                    return const Center(child: CircularProgressIndicator());
 
-            case LibraryStatus.failure:
-              return Center(child: Text(libraryState.error ?? 'Unknown error'));
+                  case LibraryStatus.failure:
+                    return Center(child: Text(libraryState.error ?? 'Unknown error'));
 
-            case LibraryStatus.loaded:
-              if (libraryState.songs.isEmpty) {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(CupertinoIcons.music_note_list, size: 64, color: Colors.grey),
-                      const SizedBox(height: 16),
-                      Text('No songs found', style: Theme.of(context).textTheme.titleLarge),
-                    ],
-                  ),
-                );
-              }
+                  case LibraryStatus.loaded:
+                    if (libraryState.songs.isEmpty) {
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(CupertinoIcons.music_note_list, size: 64, color: Colors.grey),
+                            const SizedBox(height: 16),
+                            Text('No songs found', style: Theme.of(context).textTheme.titleLarge),
+                          ],
+                        ),
+                      );
+                    }
 
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                    child: Text(
-                      '${libraryState.songs.length} Tracks',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Theme.of(context).textTheme.bodySmall?.color,
-                            fontWeight: FontWeight.w600,
-                          ),
-                    ),
-                  ),
-                  Expanded(
-                    child: ListView.builder(
-                      padding: const EdgeInsets.only(top: 8, bottom: 150),
-                      itemCount: libraryState.songs.length,
-                      itemBuilder: (context, index) {
-                        final song = libraryState.songs[index];
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: ListView.separated(
+                            padding: const EdgeInsets.only(top: 8, bottom: 150),
+                            itemCount: libraryState.songs.length,
+                            separatorBuilder: (context, index) => const Divider(
+                              height: 1, 
+                              thickness: 1, 
+                              indent: 84, // Align with text (16 padding + 48 image + 16 spacing = 80 + 4)
+                              endIndent: 24,
+                              color: Colors.white10
+                            ),
+                            itemBuilder: (context, index) {
+                              final song = libraryState.songs[index];
 
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(12),
-                            onTap: () {
-                              context.read<PlayerBloc>().add(
-                                    PlaySong(song: song, queue: libraryState.songs),
-                                  );
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(12),
-                                color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.5),
-                              ),
-                              child: Row(
-                                children: [
-                                  Stack(
-                                    children: [
-                                      ClipRRect(
-                                        borderRadius: BorderRadius.circular(8),
-                                        child: Container(
-                                          width: 48,
-                                          height: 48,
-                                          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
-                                          child: song.artworkPath != null
-                                              ? Image.file(
-                                                  File(song.artworkPath!),
-                                                  fit: BoxFit.cover,
-                                                  errorBuilder: (context, error, stackTrace) => _buildFallbackIcon(context, song),
-                                                )
-                                              : _buildFallbackIcon(context, song),
-                                        ),
+                              return Dismissible(
+                                key: ValueKey(song.id),
+                                dismissThresholds: const {
+                                  DismissDirection.startToEnd: 0.2, // Small swipe to add
+                                  DismissDirection.endToStart: 0.5, // Normal swipe to delete
+                                },
+                                background: Container(
+                                  color: AppColors.primary,
+                                  alignment: Alignment.centerLeft,
+                                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                                  child: const Icon(CupertinoIcons.text_insert, color: Colors.white),
+                                ),
+                                secondaryBackground: Container(
+                                  color: Colors.red,
+                                  alignment: Alignment.centerRight,
+                                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                                  child: const Icon(CupertinoIcons.trash, color: Colors.white),
+                                ),
+                                confirmDismiss: (direction) async {
+                                  if (direction == DismissDirection.startToEnd) {
+                                    // Swipe Right -> Add to Queue
+                                    context.read<PlayerBloc>().add(AddSongToEnd(song));
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('${song.title} added to queue', style: const TextStyle(fontWeight: FontWeight.w500)),
+                                        duration: const Duration(seconds: 2),
+                                        behavior: SnackBarBehavior.floating,
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                                       ),
-                                      if (song.isLossless)
-                                        Positioned(
-                                          bottom: -2,
-                                          right: -2,
-                                          child: Container(
-                                            decoration: const BoxDecoration(
-                                              color: Colors.white,
-                                              shape: BoxShape.circle,
-                                            ),
-                                            padding: const EdgeInsets.all(2),
-                                            child: const Icon(CupertinoIcons.star_fill, color: Color(0xFF10B981), size: 12),
+                                    );
+                                    return false; // Bounce back
+                                  } else if (direction == DismissDirection.endToStart) {
+                                    // Swipe Left -> Delete
+                                    return await showDialog<bool>(
+                                      context: context,
+                                      builder: (context) => AlertDialog(
+                                        title: const Text('Delete Song', style: TextStyle(fontWeight: FontWeight.bold)),
+                                        content: Text('Are you sure you want to remove "${song.title}" from your library?'),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () => Navigator.of(context).pop(false),
+                                            child: const Text('Cancel'),
                                           ),
-                                        ),
-                                    ],
-                                  ),
-                                  const SizedBox(width: 16),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                          TextButton(
+                                            onPressed: () => Navigator.of(context).pop(true),
+                                            child: const Text('Delete', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+                                          ),
+                                        ],
+                                      ),
+                                    ) ?? false;
+                                  }
+                                  return false;
+                                },
+                                onDismissed: (direction) {
+                                  if (direction == DismissDirection.endToStart) {
+                                    context.read<LibraryBloc>().add(RemoveSong(song));
+                                  }
+                                },
+                                child: InkWell(
+                                  onTap: () {
+                                    context.read<PlayerBloc>().add(
+                                          PlaySong(song: song, queue: libraryState.songs),
+                                        );
+                                  },
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                    child: Row(
                                       children: [
-                                        Text(
-                                          song.title,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+                                        Stack(
+                                          children: [
+                                            ClipRRect(
+                                              borderRadius: BorderRadius.circular(6),
+                                              child: Container(
+                                                width: 48,
+                                                height: 48,
+                                                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                                                child: song.artworkPath != null
+                                                    ? Image.file(
+                                                        File(song.artworkPath!),
+                                                        fit: BoxFit.cover,
+                                                        errorBuilder: (context, error, stackTrace) => _buildFallbackIcon(context, song),
+                                                      )
+                                                    : _buildFallbackIcon(context, song),
+                                              ),
+                                            ),
+                                            if (song.isLossless)
+                                              Positioned(
+                                                bottom: -2,
+                                                right: -2,
+                                                child: Container(
+                                                  decoration: const BoxDecoration(
+                                                    color: Colors.white,
+                                                    shape: BoxShape.circle,
+                                                  ),
+                                                  padding: const EdgeInsets.all(2),
+                                                  child: const Icon(CupertinoIcons.star_fill, color: Color(0xFF10B981), size: 10),
+                                                ),
+                                              ),
+                                          ],
                                         ),
-                                        const SizedBox(height: 2),
-                                        Text(
-                                          song.artist,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: TextStyle(
-                                            color: Theme.of(context).textTheme.bodySmall?.color,
-                                            fontSize: 13,
+                                        const SizedBox(width: 16),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                song.title,
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+                                              ),
+                                              const SizedBox(height: 2),
+                                              Text(
+                                                song.artist,
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: TextStyle(
+                                                  color: Theme.of(context).textTheme.bodySmall?.color,
+                                                  fontSize: 13,
+                                                ),
+                                              ),
+                                            ],
                                           ),
+                                        ),
+      
+                                        IconButton(
+                                          icon: Icon(
+                                            song.favorite ? CupertinoIcons.heart_fill : CupertinoIcons.heart,
+                                            color: song.favorite ? Colors.red : Theme.of(context).textTheme.bodySmall?.color,
+                                            size: 20,
+                                          ),
+                                          onPressed: () {
+                                            context.read<LibraryBloc>().add(LibraryToggleFavorite(song));
+                                          },
+                                        ),
+                                        PopupMenuButton<String>(
+                                          icon: Icon(CupertinoIcons.ellipsis, color: Theme.of(context).textTheme.bodySmall?.color, size: 20),
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                          color: Theme.of(context).colorScheme.surface,
+                                          elevation: 8,
+                                          onSelected: (value) {
+                                            if (value == 'play_next') {
+                                              context.read<PlayerBloc>().add(AddSongNext(song));
+                                            } else if (value == 'play_last') {
+                                              context.read<PlayerBloc>().add(AddSongToEnd(song));
+                                            }
+                                          },
+                                          itemBuilder: (context) => [
+                                            const PopupMenuItem(
+                                              value: 'play_next',
+                                              child: Row(
+                                                children: [
+                                                  Icon(CupertinoIcons.text_append, size: 20),
+                                                  SizedBox(width: 12),
+                                                  Text('Play Next', style: TextStyle(fontWeight: FontWeight.w500)),
+                                                ],
+                                              ),
+                                            ),
+                                            const PopupMenuItem(
+                                              value: 'play_last',
+                                              child: Row(
+                                                children: [
+                                                  Icon(CupertinoIcons.text_insert, size: 20),
+                                                  SizedBox(width: 12),
+                                                  Text('Play Last', style: TextStyle(fontWeight: FontWeight.w500)),
+                                                ],
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                       ],
                                     ),
                                   ),
-
-                                  const SizedBox(width: 8),
-                                  IconButton(
-                                    icon: Icon(
-                                      song.favorite ? CupertinoIcons.heart_fill : CupertinoIcons.heart,
-                                      color: song.favorite ? Colors.red : Theme.of(context).textTheme.bodySmall?.color,
-                                      size: 20,
-                                    ),
-                                    onPressed: () {
-                                      context.read<LibraryBloc>().add(LibraryToggleFavorite(song));
-                                    },
-                                  ),
-                                  PopupMenuButton<String>(
-                                    icon: Icon(CupertinoIcons.ellipsis, color: Theme.of(context).textTheme.bodySmall?.color, size: 20),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                                    color: Theme.of(context).colorScheme.surface,
-                                    elevation: 8,
-                                    onSelected: (value) {
-                                      if (value == 'remove') {
-                                        context.read<LibraryBloc>().add(RemoveSong(song));
-                                      } else if (value == 'play_next') {
-                                        // feature
-                                      }
-                                    },
-                                    itemBuilder: (context) => [
-                                      const PopupMenuItem(
-                                        value: 'play_next',
-                                        child: Row(
-                                          children: [
-                                            Icon(CupertinoIcons.play_circle, size: 20),
-                                            SizedBox(width: 12),
-                                            Text('Play Next', style: TextStyle(fontWeight: FontWeight.w500)),
-                                          ],
-                                        ),
-                                      ),
-                                      const PopupMenuItem(
-                                        value: 'remove',
-                                        child: Row(
-                                          children: [
-                                            Icon(CupertinoIcons.trash, color: Colors.red, size: 20),
-                                            SizedBox(width: 12),
-                                            Text('Remove from Library', style: TextStyle(color: Colors.red, fontWeight: FontWeight.w500)),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
+                                ),
+                              );
+                            },
                           ),
-                        );
-                      },
-                    ),
-                  ),
-                ],
-              );
-            case LibraryStatus.initial:
-              return const SizedBox.shrink();
-          }
-        },
-      ),
+                        ),
+                      ],
+                    );
+                  case LibraryStatus.initial:
+                    return const SizedBox.shrink();
+                }
+              }
+        ),
+      ),),
     );
   }
 }
