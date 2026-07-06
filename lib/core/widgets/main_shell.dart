@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:liser/features/player/presentation/widgets/mini_player.dart';
 
 class MainShell extends StatelessWidget {
@@ -68,18 +69,18 @@ class MainShell extends StatelessWidget {
                           unselectedFontSize: 12,
                           items: const [
                             BottomNavigationBarItem(
-                              icon: Padding(padding: EdgeInsets.only(top: 6), child: Icon(Icons.home_outlined)),
-                              activeIcon: Padding(padding: EdgeInsets.only(top: 6), child: Icon(Icons.home_rounded)),
+                              icon: Padding(padding: EdgeInsets.only(top: 6), child: Icon(CupertinoIcons.home)),
+                              activeIcon: Padding(padding: EdgeInsets.only(top: 6), child: Icon(CupertinoIcons.house_fill)),
                               label: 'Home',
                             ),
                             BottomNavigationBarItem(
-                              icon: Padding(padding: EdgeInsets.only(top: 6), child: Icon(Icons.library_music_outlined)),
-                              activeIcon: Padding(padding: EdgeInsets.only(top: 6), child: Icon(Icons.library_music_rounded)),
+                              icon: Padding(padding: EdgeInsets.only(top: 6), child: Icon(CupertinoIcons.music_albums)),
+                              activeIcon: Padding(padding: EdgeInsets.only(top: 6), child: Icon(CupertinoIcons.music_albums_fill)),
                               label: 'Library',
                             ),
                             BottomNavigationBarItem(
-                              icon: Padding(padding: EdgeInsets.only(top: 6), child: Icon(Icons.settings_outlined)),
-                              activeIcon: Padding(padding: EdgeInsets.only(top: 6), child: Icon(Icons.settings_rounded)),
+                              icon: Padding(padding: EdgeInsets.only(top: 6), child: Icon(CupertinoIcons.settings)),
+                              activeIcon: Padding(padding: EdgeInsets.only(top: 6), child: Icon(CupertinoIcons.settings_solid)),
                               label: 'Settings',
                             ),
                           ],

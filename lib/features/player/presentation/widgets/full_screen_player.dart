@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:liser/features/player/presentation/bloc/player_bloc.dart';
@@ -102,9 +103,9 @@ class FullScreenPlayer extends StatelessWidget {
                                         ? Image.file(
                                             File(song.artworkPath!),
                                             fit: BoxFit.cover,
-                                            errorBuilder: (context, error, stackTrace) => const Icon(Icons.music_note, color: Colors.white, size: 80),
+                                            errorBuilder: (context, error, stackTrace) => const Icon(CupertinoIcons.music_note, color: Colors.white, size: 80),
                                           )
-                                        : const Icon(Icons.music_note, color: Colors.white, size: 80),
+                                        : const Icon(CupertinoIcons.music_note, color: Colors.white, size: 80),
                                   ),
                                 ),
                               ),
@@ -140,7 +141,7 @@ class FullScreenPlayer extends StatelessWidget {
                               ),
                             ),
                             IconButton(
-                              icon: Icon(song.favorite ? Icons.favorite : Icons.favorite_border),
+                              icon: Icon(song.favorite ? CupertinoIcons.heart_fill : CupertinoIcons.heart),
                               color: song.favorite ? AppColors.primary : null,
                               onPressed: () {
                                 context.read<PlayerBloc>().add(ToggleFavorite(song));
@@ -190,7 +191,7 @@ class FullScreenPlayer extends StatelessWidget {
                           children: [
                             IconButton(
                               iconSize: 32,
-                              icon: const Icon(Icons.skip_previous_rounded),
+                              icon: const Icon(CupertinoIcons.backward_fill),
                               color: state.hasPrevious ? null : Theme.of(context).dividerColor,
                               onPressed: state.hasPrevious ? () => context.read<PlayerBloc>().add(PreviousSong()) : null,
                             ),
@@ -211,13 +212,13 @@ class FullScreenPlayer extends StatelessWidget {
                               child: IconButton(
                                 iconSize: 40,
                                 color: Colors.white,
-                                icon: Icon(state.status == PlayerStatus.playing ? Icons.pause_rounded : Icons.play_arrow_rounded),
+                                icon: Icon(state.status == PlayerStatus.playing ? CupertinoIcons.pause_solid : CupertinoIcons.play_arrow_solid),
                                 onPressed: () => context.read<PlayerBloc>().add(TogglePlayPause()),
                               ),
                             ),
                             IconButton(
                               iconSize: 32,
-                              icon: const Icon(Icons.skip_next_rounded),
+                              icon: const Icon(CupertinoIcons.forward_fill),
                               color: state.hasNext ? null : Theme.of(context).dividerColor,
                               onPressed: state.hasNext ? () => context.read<PlayerBloc>().add(NextSong()) : null,
                             ),

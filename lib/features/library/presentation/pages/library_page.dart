@@ -1,15 +1,17 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import 'package:liser/features/library/data/models/song.dart';
 import 'package:liser/features/library/presentation/bloc/library_bloc.dart';
 import 'package:liser/features/player/presentation/bloc/player_bloc.dart';
 
 class LibraryPage extends StatelessWidget {
   const LibraryPage({super.key});
 
-  Widget _buildFallbackIcon(BuildContext context, song) {
-    if (song.title.isEmpty) return const Icon(Icons.music_note);
+  Widget _buildFallbackIcon(BuildContext context, Song song) {
+    if (song.title.isEmpty) return const Icon(CupertinoIcons.music_note);
     return Center(
       child: Text(
         song.title[0].toUpperCase(),
@@ -43,7 +45,7 @@ class LibraryPage extends StatelessWidget {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.music_off, size: 64, color: Colors.grey),
+                      const Icon(CupertinoIcons.music_note_list, size: 64, color: Colors.grey),
                       const SizedBox(height: 16),
                       Text('No songs found', style: Theme.of(context).textTheme.titleLarge),
                     ],
@@ -146,16 +148,37 @@ class LibraryPage extends StatelessWidget {
                                     ),
                                   const SizedBox(width: 8),
                                   PopupMenuButton<String>(
-                                    icon: Icon(Icons.more_vert, color: Theme.of(context).textTheme.bodySmall?.color, size: 20),
+                                    icon: Icon(CupertinoIcons.ellipsis, color: Theme.of(context).textTheme.bodySmall?.color, size: 20),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                    color: Theme.of(context).colorScheme.surface,
+                                    elevation: 8,
                                     onSelected: (value) {
                                       if (value == 'remove') {
                                         context.read<LibraryBloc>().add(RemoveSong(song));
+                                      } else if (value == 'play_next') {
+                                        // feature
                                       }
                                     },
                                     itemBuilder: (context) => [
                                       const PopupMenuItem(
+                                        value: 'play_next',
+                                        child: Row(
+                                          children: [
+                                            Icon(CupertinoIcons.play_circle, size: 20),
+                                            SizedBox(width: 12),
+                                            Text('Play Next', style: TextStyle(fontWeight: FontWeight.w500)),
+                                          ],
+                                        ),
+                                      ),
+                                      const PopupMenuItem(
                                         value: 'remove',
-                                        child: Text('Remove from Library'),
+                                        child: Row(
+                                          children: [
+                                            Icon(CupertinoIcons.trash, color: Colors.red, size: 20),
+                                            SizedBox(width: 12),
+                                            Text('Remove from Library', style: TextStyle(color: Colors.red, fontWeight: FontWeight.w500)),
+                                          ],
+                                        ),
                                       ),
                                     ],
                                   ),
