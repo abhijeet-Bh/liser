@@ -99,9 +99,15 @@ class _PlaylistDetailsPageState extends State<PlaylistDetailsPage> {
     );
   }
 
+  List<String>? _optimisticSongIds;
+
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<LibraryBloc, LibraryState>(
+    return BlocConsumer<LibraryBloc, LibraryState>(
+      listenWhen: (prev, curr) => prev.updateCount != curr.updateCount,
+      listener: (context, state) {
+        _optimisticSongIds = null;
+      },
       builder: (context, state) {
         Playlist? playlist;
         List<Song> playlistSongs = [];
@@ -119,7 +125,8 @@ class _PlaylistDetailsPageState extends State<PlaylistDetailsPage> {
             return const Scaffold(body: Center(child: Text('Playlist not found')));
           }
           playlist = state.playlists[playlistIndex];
-          for (final id in playlist.songIds) {
+          final songIdsToUse = _optimisticSongIds ?? playlist.songIds;
+          for (final id in songIdsToUse) {
             try {
               playlistSongs.add(state.songs.firstWhere((s) => s.id == id));
             } catch (_) {}
@@ -133,7 +140,7 @@ class _PlaylistDetailsPageState extends State<PlaylistDetailsPage> {
                 SliverAppBar(
                   expandedHeight: 320,
                   pinned: true,
-                  backgroundColor: Colors.transparent,
+                  backgroundColor: Theme.of(context).colorScheme.surface.withValues(alpha: 0.85),
                   elevation: 0,
                   leading: IconButton(
                     icon: const Icon(CupertinoIcons.back),
@@ -264,13 +271,21 @@ class _PlaylistDetailsPageState extends State<PlaylistDetailsPage> {
                     itemCount: playlistSongs.length,
                     onReorder: (oldIndex, newIndex) {
                       if (!isFavorites) {
+                        setState(() {
+                          if (oldIndex < newIndex) {
+                            newIndex -= 1;
+                          }
+                          _optimisticSongIds = List.from(playlist!.songIds);
+                          final item = _optimisticSongIds!.removeAt(oldIndex);
+                          _optimisticSongIds!.insert(newIndex, item);
+                        });
                         context.read<LibraryBloc>().add(ReorderPlaylistSongs(playlist!, oldIndex, newIndex));
                       }
                     },
                     itemBuilder: (context, index) {
                       final song = playlistSongs[index];
                       return Slidable(
-                        key: ValueKey(song.id + index.toString()),
+                        key: ValueKey(song.id),
                         endActionPane: isFavorites ? null : ActionPane(
                           motion: const StretchMotion(),
                           children: [

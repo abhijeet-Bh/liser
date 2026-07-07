@@ -98,9 +98,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
               child: CupertinoSearchTextField(
                 placeholder: 'Search songs or artists...',
-                style: const TextStyle(color: Colors.white),
-                backgroundColor: Colors.white.withValues(alpha: 0.1),
-                itemColor: Colors.white54,
+                style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+                backgroundColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
+                itemColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                 onChanged: (value) {
                   // We need to implement search query in home page. 

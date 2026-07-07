@@ -35,93 +35,111 @@ class _AllTracksPageState extends State<AllTracksPage> {
     );
   }
 
-  void _showAddToPlaylistSheet(BuildContext context, Song song, List<Playlist> playlists) {
+  void _showAddToPlaylistSheet(BuildContext context, Song song) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (sheetContext) {
-        return DraggableScrollableSheet(
-          initialChildSize: 0.5,
-          minChildSize: 0.3,
-          maxChildSize: 0.9,
-          expand: false,
-          builder: (_, scrollController) {
-            return Container(
-              padding: const EdgeInsets.only(top: 16),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.surface,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-              ),
-              child: Column(
-                children: [
-                  Container(
-                    width: 40,
-                    height: 4,
-                    margin: const EdgeInsets.only(bottom: 24),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.withOpacity(0.3),
-                      borderRadius: BorderRadius.circular(2),
-                    ),
+        return BlocBuilder<LibraryBloc, LibraryState>(
+          builder: (context, state) {
+            final playlists = state.playlists;
+            return DraggableScrollableSheet(
+              initialChildSize: 0.5,
+              minChildSize: 0.3,
+              maxChildSize: 0.9,
+              expand: false,
+              builder: (_, scrollController) {
+                return Container(
+                  padding: const EdgeInsets.only(top: 16),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surface,
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
                   ),
-                  const Text(
-                    'Add to Playlist',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  if (playlists.isEmpty)
-                    const Padding(
-                      padding: EdgeInsets.all(32.0),
-                      child: Text('No playlists created yet.'),
-                    )
-                  else
-                    Expanded(
-                      child: ListView.builder(
-                        controller: scrollController,
-                        padding: EdgeInsets.only(
-                          bottom: MediaQuery.of(sheetContext).padding.bottom + 120,
+                  child: Column(
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 4,
+                        margin: const EdgeInsets.only(bottom: 24),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.withValues(alpha: 0.3),
+                          borderRadius: BorderRadius.circular(2),
                         ),
-                        itemCount: playlists.length,
-                        itemBuilder: (context, index) {
-                          final playlist = playlists[index];
-                          return ListTile(
-                            leading: Container(
-                              width: 48,
-                              height: 48,
-                              decoration: BoxDecoration(
-                                color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Icon(
-                                CupertinoIcons.music_note_list,
-                                color: Theme.of(context).colorScheme.primary,
-                              ),
+                      ),
+                      const Text(
+                        'Add to Playlist',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      if (playlists.isEmpty)
+                        const Padding(
+                          padding: EdgeInsets.all(32.0),
+                          child: Text('No playlists created yet.'),
+                        )
+                      else
+                        Expanded(
+                          child: ListView.builder(
+                            controller: scrollController,
+                            padding: EdgeInsets.only(
+                              bottom: MediaQuery.of(sheetContext).padding.bottom + 120,
                             ),
-                            title: Text(playlist.name),
-                            subtitle: Text('${playlist.songIds.length} songs'),
-                            onTap: () {
-                              context.read<LibraryBloc>().add(
-                                    AddSongToPlaylist(playlist, song),
-                                  );
-                              Navigator.pop(sheetContext);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('Added to ${playlist.name}')),
+                            itemCount: playlists.length,
+                            itemBuilder: (context, index) {
+                              final playlist = playlists[index];
+                              final bool isAlreadyAdded = playlist.songIds.contains(song.id);
+                              return ListTile(
+                                enabled: !isAlreadyAdded,
+                                leading: Container(
+                                  width: 48,
+                                  height: 48,
+                                  decoration: BoxDecoration(
+                                    color: isAlreadyAdded 
+                                      ? Colors.grey.withValues(alpha: 0.1) 
+                                      : Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Icon(
+                                    isAlreadyAdded ? CupertinoIcons.checkmark_alt : CupertinoIcons.music_note_list,
+                                    color: isAlreadyAdded ? Colors.grey : Theme.of(context).colorScheme.primary,
+                                  ),
+                                ),
+                                title: Text(
+                                  playlist.name,
+                                  style: TextStyle(
+                                    color: isAlreadyAdded ? Colors.grey : null,
+                                  ),
+                                ),
+                                subtitle: Text(
+                                  '${playlist.songIds.length} songs',
+                                  style: TextStyle(
+                                    color: isAlreadyAdded ? Colors.grey : null,
+                                  ),
+                                ),
+                                onTap: isAlreadyAdded ? null : () {
+                                  context.read<LibraryBloc>().add(
+                                        AddSongToPlaylist(playlist, song),
+                                      );
+                                  // Don't pop immediately so they can see the change, or maybe just pop
+                                  // Wait, if it doesn't pop immediately they can see it real-time.
+                                  // We'll let them manually swipe it down or pop.
+                                },
                               );
                             },
-                          );
-                        },
-                      ),
-                    ),
-                ],
-              ),
+                          ),
+                        ),
+                    ],
+                  ),
+                );
+              },
             );
           },
         );
       },
-    ); 
+    );
   }
 
   @override
@@ -161,9 +179,9 @@ class _AllTracksPageState extends State<AllTracksPage> {
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
               child: CupertinoSearchTextField(
                 placeholder: 'Search songs or artists...',
-                style: const TextStyle(color: Colors.white),
-                backgroundColor: Colors.white.withValues(alpha: 0.1),
-                itemColor: Colors.white54,
+                style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+                backgroundColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
+                itemColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                 onChanged: (value) {
                   setState(() {
@@ -350,7 +368,7 @@ class _AllTracksPageState extends State<AllTracksPage> {
                                                 } else if (value == 'add_to_last') {
                                                   context.read<PlayerBloc>().add(AddSongToEnd(song));
                                                 } else if (value == 'add_to_playlist') {
-                                                  _showAddToPlaylistSheet(context, song, libraryState.playlists);
+                                                  _showAddToPlaylistSheet(context, song);
                                                 }
                                               },
                                               itemBuilder: (context) => [

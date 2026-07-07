@@ -5,6 +5,7 @@ import 'package:flutter/physics.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:liser/features/player/presentation/bloc/player_bloc.dart';
+import 'package:liser/features/library/data/models/song.dart';
 import 'package:liser/app/theme/app_colors.dart';
 
 class ExpandablePlayer extends StatefulWidget {
@@ -104,9 +105,15 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
     return "$twoDigitMinutes:$twoDigitSeconds";
   }
 
+  List<Song>? _optimisticQueue;
+
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<PlayerBloc, PlayerUiState>(
+    return BlocConsumer<PlayerBloc, PlayerUiState>(
+      listenWhen: (prev, curr) => prev.queue != curr.queue || prev.currentIndex != curr.currentIndex,
+      listener: (context, state) {
+        _optimisticQueue = null;
+      },
       builder: (context, state) {
         final song = state.currentSong;
         final hasSong = song != null;
@@ -523,6 +530,7 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
   }
 
   Widget _buildQueueUI(BuildContext context, PlayerUiState state, dynamic song) {
+    final queue = _optimisticQueue ?? state.queue;
     return Column(
       key: const ValueKey('queue_ui'),
       children: [
@@ -572,7 +580,7 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
         ),
         
         Expanded(
-          child: state.queue.length <= state.currentIndex + 1 
+          child: queue.length <= state.currentIndex + 1 
           ? const Center(
               child: Text(
                 'No upcoming songs', 
@@ -581,21 +589,30 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
             )
           : ReorderableListView.builder(
               padding: const EdgeInsets.only(top: 8, bottom: 24),
-              itemCount: state.queue.length - state.currentIndex - 1,
+              itemCount: queue.length - state.currentIndex - 1,
               onReorder: (oldIndex, newIndex) {
+                setState(() {
+                  if (oldIndex < newIndex) {
+                    newIndex -= 1;
+                  }
+                  final baseIndex = state.currentIndex + 1;
+                  _optimisticQueue = List.from(state.queue);
+                  final item = _optimisticQueue!.removeAt(baseIndex + oldIndex);
+                  _optimisticQueue!.insert(baseIndex + newIndex, item);
+                });
                 final baseIndex = state.currentIndex + 1;
                 context.read<PlayerBloc>().add(ReorderQueue(baseIndex + oldIndex, baseIndex + newIndex));
               },
               itemBuilder: (context, index) {
                 final songIndex = state.currentIndex + 1 + index;
-                final qSong = state.queue[songIndex];
+                final qSong = queue[songIndex];
                 
                 return InkWell(
-                  key: ValueKey(qSong.id + index.toString()),
+                  key: ValueKey(qSong.id),
                   onTap: () {
                     // Play this song? The queue logic usually just jumps to it or plays it.
                     // Let's just play it from the queue context if they tap it.
-                    context.read<PlayerBloc>().add(PlaySong(song: qSong, queue: state.queue));
+                    context.read<PlayerBloc>().add(PlaySong(song: qSong, queue: queue));
                   },
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),

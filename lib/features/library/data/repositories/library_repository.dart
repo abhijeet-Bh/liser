@@ -1,9 +1,11 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:hive/hive.dart';
 import 'package:liser/app/di/service_locator.dart';
 import 'package:liser/core/storage/database/hive_service.dart';
 import 'package:liser/core/storage/services/music_storage_service.dart';
+import 'package:path/path.dart' as p;
 import 'package:liser/features/library/data/models/playlist.dart';
 import 'package:liser/features/library/data/models/song.dart';
 import 'package:liser/features/library/data/services/library_scanner.dart';
@@ -71,6 +73,8 @@ class LibraryRepository {
       await _box.addAll(newSongs);
     }
 
+    await _restorePlaylists(scanPath);
+
     return newSongs.length;
   }
 
@@ -129,38 +133,46 @@ class LibraryRepository {
       createdAt: DateTime.now(),
     );
     await _playlistsBox.add(playlist);
+    await _backupPlaylists();
   }
 
   Future<void> deletePlaylist(Playlist playlist) async {
     await playlist.delete();
+    await _backupPlaylists();
   }
 
   Future<void> addSongToPlaylist(Playlist playlist, Song song) async {
     if (!playlist.songIds.contains(song.id)) {
-      playlist.songIds.add(song.id);
+      playlist.songIds = List<String>.from(playlist.songIds)..add(song.id);
       await playlist.save();
+      await _backupPlaylists();
     }
   }
 
   Future<void> removeSongFromPlaylist(Playlist playlist, Song song) async {
     if (playlist.songIds.contains(song.id)) {
-      playlist.songIds.remove(song.id);
+      playlist.songIds = List<String>.from(playlist.songIds)..remove(song.id);
       await playlist.save();
+      await _backupPlaylists();
     }
   }
 
   Future<void> setPlaylistCover(Playlist playlist, String coverPath) async {
     playlist.coverPath = coverPath;
     await playlist.save();
+    await _backupPlaylists();
   }
 
   Future<void> reorderPlaylistSongs(Playlist playlist, int oldIndex, int newIndex) async {
     if (oldIndex < newIndex) {
       newIndex -= 1;
     }
-    final item = playlist.songIds.removeAt(oldIndex);
-    playlist.songIds.insert(newIndex, item);
+    final newList = List<String>.from(playlist.songIds);
+    final item = newList.removeAt(oldIndex);
+    newList.insert(newIndex, item);
+    playlist.songIds = newList;
     await playlist.save();
+    await _backupPlaylists();
   }
 
   Future<void> clearLibrary() async {
@@ -182,5 +194,57 @@ class LibraryRepository {
     }
     await _box.clear();
     await _playlistsBox.clear();
+    
+    // Also clear backup
+    final String? syncFolderPath = _syncService.getSyncFolderPath();
+    String scanPath = syncFolderPath ?? (await sl<MusicStorageService>().getMusicDirectory()).path;
+    final backupFile = File(p.join(scanPath, 'playlists_backup.json'));
+    if (await backupFile.exists()) {
+      await backupFile.delete();
+    }
+  }
+
+  Future<void> _backupPlaylists() async {
+    final String? syncFolderPath = _syncService.getSyncFolderPath();
+    String scanPath;
+    if (syncFolderPath != null) {
+      scanPath = syncFolderPath;
+    } else {
+      final musicDirectory = await sl<MusicStorageService>().getMusicDirectory();
+      scanPath = musicDirectory.path;
+    }
+    
+    final file = File(p.join(scanPath, 'playlists_backup.json'));
+    final List<Map<String, dynamic>> data = _playlistsBox.values.map((pList) => {
+      'id': pList.id,
+      'name': pList.name,
+      'songIds': pList.songIds,
+      'createdAt': pList.createdAt.toIso8601String(),
+      'coverPath': pList.coverPath,
+    }).toList();
+    
+    await file.writeAsString(jsonEncode(data));
+  }
+
+  Future<void> _restorePlaylists(String scanPath) async {
+    if (_playlistsBox.isNotEmpty) return;
+    
+    final file = File(p.join(scanPath, 'playlists_backup.json'));
+    if (await file.exists()) {
+      try {
+        final content = await file.readAsString();
+        final List<dynamic> data = jsonDecode(content);
+        final playlists = data.map((json) => Playlist(
+          id: json['id'] as String,
+          name: json['name'] as String,
+          songIds: List<String>.from(json['songIds'] ?? []),
+          createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '') ?? DateTime.now(),
+          coverPath: json['coverPath'] as String?,
+        )).toList();
+        await _playlistsBox.addAll(playlists);
+      } catch (e) {
+        // Ignore backup restore errors
+      }
+    }
   }
 }
