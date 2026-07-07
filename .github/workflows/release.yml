@@ -1,0 +1,128 @@
+name: Compile and Deploy Multi-Platform Release
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write # Allows the workflow to create a GitHub Release and upload binaries
+
+jobs:
+  build-and-release:
+    name: Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: linux-android
+          - os: macos-latest
+            target: macos
+          - os: windows-latest
+            target: windows
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # ==========================================
+      # ENVIRONMENT SETUPS
+      # ==========================================
+      - name: Set up Java (For Android)
+        if: matrix.target == 'linux-android'
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      # ==========================================
+      # LINUX & ANDROID BUILD STEP
+      # ==========================================
+      - name: Build Android APK, Linux Tarball & Debian Package
+        if: matrix.target == 'linux-android'
+        run: |
+          # 1. Build Android APK
+          flutter build apk --release
+          cp build/app/outputs/flutter-apk/app-release.apk ./PixelMusic-Android.apk
+          
+          # 2. Install Linux Compilation Requirements
+          sudo apt-get update -y
+          sudo apt-get install -y ninja-build libgtk-3-dev
+          flutter build linux --release
+          
+          # 3. Create Linux .tar.gz bundle
+          cd build/linux/x64/release/bundle
+          tar -czf ../../../../../PixelMusic-Linux.tar.gz *
+          cd '../../../../..'
+          
+          # 4. Generate native Linux .deb Package natively using dpkg-deb
+          mkdir -p deb-pkg/DEBIAN
+          mkdir -p deb-pkg/usr/bin
+          mkdir -p deb-pkg/usr/share/pixelmusic
+          
+          # Copy binaries to debian bundle directory
+          cp -r build/linux/x64/release/bundle/* deb-pkg/usr/share/pixelmusic/
+          
+          # Create symbolic link launcher inside system binaries path
+          ln -s /usr/share/pixelmusic/pixel_music deb-pkg/usr/bin/pixelmusic
+          
+          # Write the Debian standard configuration structure
+          cat <<EOT > deb-pkg/DEBIAN/control
+          Package: pixelmusic
+          Version: 1.0.${{ github.run_number }}
+          Section: sound
+          Priority: optional
+          Architecture: amd64
+          Maintainer: Open Source Developer <developer@example.com>
+          Description: Local and YouTube streaming audio player built using Flutter.
+          EOT
+          
+          dpkg-deb --build deb-pkg ./PixelMusic-Linux.deb
+
+      # ==========================================
+      # MACOS BUILD STEP
+      # ==========================================
+      - name: Build macOS DMG
+        if: matrix.target == 'macos'
+        run: |
+          flutter build macos --release
+          # Package the compilation binary into a clean .dmg image
+          hdiutil create -format UDZO -srcfolder build/macos/Build/Products/Release/PixelMusic.app ./PixelMusic-Mac.dmg
+
+      # ==========================================
+      # WINDOWS BUILD STEP
+      # ==========================================
+      - name: Build Windows Executable Bundle
+        if: matrix.target == 'windows'
+        shell: pwsh
+        run: |
+          flutter build windows --release
+          # Compress the binary bundle folder structure cleanly into a portable .zip
+          Compress-Archive -Path build\windows\x64\runner\Release\* -DestinationPath .\PixelMusic-Windows.zip
+
+      # ==========================================
+      # UNIVERSAL DEPLOYMENT STEP
+      # ==========================================
+      - name: Upload Binaries to Release Page
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.${{ github.run_number }}
+          name: Release v1.0.${{ github.run_number }}
+          draft: false
+          prerelease: false
+          files: |
+            ./*.apk
+            ./*.deb
+            ./*.tar.gz
+            ./*.dmg
+            ./*.zip
