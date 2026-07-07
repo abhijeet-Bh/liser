@@ -10,6 +10,8 @@ class FrostedBackground extends StatelessWidget {
     final isLight = Theme.of(context).brightness == Brightness.light;
     return Stack(
       children: [
+        // Opaque base layer to prevent underlying pages from showing through
+        Container(color: Theme.of(context).scaffoldBackgroundColor),
         // Background Gradient
         Container(
           decoration: BoxDecoration(
@@ -25,14 +27,11 @@ class FrostedBackground extends StatelessWidget {
           ),
         ),
         
-        // Blur overlay
-        BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 30.0, sigmaY: 30.0),
-          child: Container(color: Colors.transparent),
-        ),
-
         // Content
-        child,
+        Material(
+          color: Colors.transparent,
+          child: child,
+        ),
       ],
     );
   }

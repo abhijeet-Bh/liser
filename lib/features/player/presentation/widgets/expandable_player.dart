@@ -6,7 +6,12 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:liser/features/player/presentation/bloc/player_bloc.dart';
 import 'package:liser/features/library/data/models/song.dart';
+import 'package:liser/features/library/data/models/playlist.dart';
+import 'package:liser/features/library/presentation/bloc/library_bloc.dart';
 import 'package:liser/app/theme/app_colors.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:liser/app/di/service_locator.dart';
+import 'package:liser/core/storage/database/hive_service.dart';
 
 class ExpandablePlayer extends StatefulWidget {
   final Widget bottomNavigationBar;
@@ -463,68 +468,104 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
   }
 
   Widget _buildTitleRow(BuildContext context, PlayerUiState state, dynamic song, bool isDark) {
-    return Row(
+    return Column(
       key: const ValueKey('title_row'),
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      crossAxisAlignment: CrossAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                song?.title ?? '',
-                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                song?.artist ?? '',
-                style: TextStyle(fontSize: 18, color: Theme.of(context).textTheme.bodySmall?.color),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 8),
-              if (song != null)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: isDark ? Colors.grey[800] : Colors.grey[300],
-                    borderRadius: BorderRadius.circular(6),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    song?.title ?? '',
+                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        song.isLossless ? CupertinoIcons.waveform_path_badge_plus : CupertinoIcons.waveform_path,
-                        size: 14,
-                        color: isDark ? Colors.white : Colors.black87,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        song.isLossless ? 'LOSSLESS' : 'HIGH QUALITY',
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1,
-                          color: isDark ? Colors.white : Colors.black87,
+                  const SizedBox(height: 4),
+                  Text(
+                    song?.artist ?? '',
+                    style: TextStyle(fontSize: 18, color: Theme.of(context).textTheme.bodySmall?.color),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            if (song != null)
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: Icon(song.favorite ? CupertinoIcons.heart_fill : CupertinoIcons.heart),
+                    color: song.favorite ? AppColors.primary : null,
+                    onPressed: () {
+                      context.read<PlayerBloc>().add(ToggleFavorite(song));
+                    },
+                  ),
+                  PopupMenuButton<String>(
+                    icon: const Icon(CupertinoIcons.ellipsis),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    color: Theme.of(context).colorScheme.surface,
+                    elevation: 8,
+                    onSelected: (value) {
+                      if (value == 'add_to_playlist') {
+                        _showAddToPlaylistSheet(context, song);
+                      }
+                    },
+                    itemBuilder: (context) => [
+                      const PopupMenuItem(
+                        value: 'add_to_playlist',
+                        child: Row(
+                          children: [
+                            Icon(CupertinoIcons.music_note_list, size: 20),
+                            SizedBox(width: 12),
+                            Text('Add to Playlist'),
+                          ],
                         ),
                       ),
                     ],
                   ),
-                ),
-            ],
-          ),
+                ],
+              ),
+          ],
         ),
-        if (song != null)
-          IconButton(
-            icon: Icon(song.favorite ? CupertinoIcons.heart_fill : CupertinoIcons.heart),
-            color: song.favorite ? AppColors.primary : null,
-            onPressed: () {
-              context.read<PlayerBloc>().add(ToggleFavorite(song));
-            },
+        if (song != null) ...[
+          const SizedBox(height: 12),
+          Center(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+              decoration: BoxDecoration(
+                color: (isDark ? Colors.grey[800]! : Colors.grey[300]!).withValues(alpha: 0.5),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    song.isLossless ? CupertinoIcons.waveform_path_badge_plus : CupertinoIcons.waveform_path,
+                    size: 10,
+                    color: (isDark ? Colors.white : Colors.black87).withValues(alpha: 0.6),
+                  ),
+                  const SizedBox(width: 3),
+                  Text(
+                    song.isLossless ? 'LOSSLESS' : 'HIGH QUALITY',
+                    style: TextStyle(
+                      fontSize: 7.5,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1,
+                      color: (isDark ? Colors.white : Colors.black87).withValues(alpha: 0.6),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
+        ],
       ],
     );
   }
@@ -748,6 +789,108 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
               ),
             ),
           ),
+        );
+      },
+    );
+  }
+  void _showAddToPlaylistSheet(BuildContext context, Song song) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (sheetContext) {
+        return ValueListenableBuilder<Box<Playlist>>(
+          valueListenable: sl<HiveService>().playlistsBox.listenable(),
+          builder: (context, box, _) {
+            final playlists = box.values.toList();
+            return DraggableScrollableSheet(
+              initialChildSize: 0.5,
+              minChildSize: 0.3,
+              maxChildSize: 0.9,
+              expand: false,
+              builder: (_, scrollController) {
+                return Container(
+                  padding: const EdgeInsets.only(top: 16),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surface,
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                  ),
+                  child: Column(
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 4,
+                        margin: const EdgeInsets.only(bottom: 24),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.withValues(alpha: 0.3),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                      const Text(
+                        'Add to Playlist',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      if (playlists.isEmpty)
+                        const Padding(
+                          padding: EdgeInsets.all(32.0),
+                          child: Text('No playlists created yet.'),
+                        )
+                      else
+                        Expanded(
+                          child: ListView.builder(
+                            controller: scrollController,
+                            itemCount: playlists.length,
+                            itemBuilder: (context, index) {
+                              final playlist = playlists[index];
+                              final isAlreadyAdded = playlist.songIds.contains(song.id);
+                              
+                              return ListTile(
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                                leading: Container(
+                                  width: 48,
+                                  height: 48,
+                                  decoration: BoxDecoration(
+                                    color: isAlreadyAdded 
+                                      ? Colors.grey.withValues(alpha: 0.1) 
+                                      : Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Icon(
+                                    isAlreadyAdded ? CupertinoIcons.checkmark_alt : CupertinoIcons.music_note_list,
+                                    color: isAlreadyAdded ? Colors.grey : Theme.of(context).colorScheme.primary,
+                                  ),
+                                ),
+                                title: Text(
+                                  playlist.name,
+                                  style: TextStyle(
+                                    color: isAlreadyAdded ? Colors.grey : null,
+                                  ),
+                                ),
+                                subtitle: Text(
+                                  '${playlist.songIds.length} songs',
+                                  style: TextStyle(
+                                    color: isAlreadyAdded ? Colors.grey : null,
+                                  ),
+                                ),
+                                onTap: isAlreadyAdded ? null : () {
+                                  context.read<LibraryBloc>().add(
+                                        AddSongToPlaylist(playlist, song),
+                                      );
+                                },
+                              );
+                            },
+                          ),
+                        ),
+                    ],
+                  ),
+                );
+              },
+            );
+          },
         );
       },
     );
