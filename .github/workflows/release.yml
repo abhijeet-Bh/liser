@@ -6,7 +6,7 @@ on:
       - main
 
 permissions:
-  contents: write # Allows the workflow to create a GitHub Release and upload binaries
+  contents: write
 
 jobs:
   build-and-release:
@@ -53,7 +53,7 @@ jobs:
         run: |
           # 1. Build Android APK
           flutter build apk --release
-          cp build/app/outputs/flutter-apk/app-release.apk ./PixelMusic-Android.apk
+          cp build/app/outputs/flutter-apk/app-release.apk ./liser-Android.apk
           
           # 2. Install Linux Compilation Requirements
           sudo apt-get update -y
@@ -62,23 +62,19 @@ jobs:
           
           # 3. Create Linux .tar.gz bundle
           cd build/linux/x64/release/bundle
-          tar -czf ../../../../../PixelMusic-Linux.tar.gz *
+          tar -czf ../../../../../liser-Linux.tar.gz *
           cd '../../../../..'
           
-          # 4. Generate native Linux .deb Package natively using dpkg-deb
+          # 4. Generate native Linux .deb Package
           mkdir -p deb-pkg/DEBIAN
           mkdir -p deb-pkg/usr/bin
-          mkdir -p deb-pkg/usr/share/pixelmusic
+          mkdir -p deb-pkg/usr/share/liser
           
-          # Copy binaries to debian bundle directory
-          cp -r build/linux/x64/release/bundle/* deb-pkg/usr/share/pixelmusic/
+          cp -r build/linux/x64/release/bundle/* deb-pkg/usr/share/liser/
+          ln -s /usr/share/liser/liser deb-pkg/usr/bin/liser
           
-          # Create symbolic link launcher inside system binaries path
-          ln -s /usr/share/pixelmusic/pixel_music deb-pkg/usr/bin/pixelmusic
-          
-          # Write the Debian standard configuration structure
           cat <<EOT > deb-pkg/DEBIAN/control
-          Package: pixelmusic
+          Package: liser
           Version: 1.0.${{ github.run_number }}
           Section: sound
           Priority: optional
@@ -87,7 +83,7 @@ jobs:
           Description: Local and YouTube streaming audio player built using Flutter.
           EOT
           
-          dpkg-deb --build deb-pkg ./PixelMusic-Linux.deb
+          dpkg-deb --build deb-pkg ./liser-Linux.deb
 
       # ==========================================
       # MACOS BUILD STEP
@@ -96,8 +92,8 @@ jobs:
         if: matrix.target == 'macos'
         run: |
           flutter build macos --release
-          # Package the compilation binary into a clean .dmg image
-          hdiutil create -format UDZO -srcfolder build/macos/Build/Products/Release/PixelMusic.app ./PixelMusic-Mac.dmg
+          # Fixed target directory path pointing to liser.app instead of PixelMusic.app
+          hdiutil create -format UDZO -srcfolder build/macos/Build/Products/Release/liser.app ./liser-Mac.dmg
 
       # ==========================================
       # WINDOWS BUILD STEP
@@ -105,10 +101,12 @@ jobs:
       - name: Build Windows Executable Bundle
         if: matrix.target == 'windows'
         shell: pwsh
+        # Bypasses MSVC 14.51 coroutine deprecation barrier natively
+        env:
+          CL: /D_SILENCE_EXPERIMENTAL_COROUTINE_DEPRECATION_WARNINGS
         run: |
           flutter build windows --release
-          # Compress the binary bundle folder structure cleanly into a portable .zip
-          Compress-Archive -Path build\windows\x64\runner\Release\* -DestinationPath .\PixelMusic-Windows.zip
+          Compress-Archive -Path build\windows\x64\runner\Release\* -DestinationPath .\liser-Windows.zip
 
       # ==========================================
       # UNIVERSAL DEPLOYMENT STEP
