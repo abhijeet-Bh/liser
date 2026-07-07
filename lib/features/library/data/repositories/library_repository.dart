@@ -44,26 +44,57 @@ class LibraryRepository {
     }
 
     final files = await _scanner.scan(scanPath);
-
     final existingSongs = _box.values.toList();
-    final existingPaths = existingSongs.map((s) => s.path).toSet();
-
+    
     final newSongs = <Song>[];
     final scannedPaths = <String>{};
+    final migratedIds = <String, String>{};
 
     for (final file in files) {
       scannedPaths.add(file.path);
-      try {
-        if (!existingPaths.contains(file.path)) {
+      final fileName = p.basename(file.path);
+      
+      final matches = existingSongs.where((s) => s.path == file.path || s.fileName == fileName || p.basename(s.path) == fileName).toList();
+      
+      if (matches.isNotEmpty) {
+        final song = matches.first;
+        bool needsSave = false;
+        
+        if (song.id == song.path || song.id.startsWith('/')) {
+          final oldId = song.id;
+          song.id = fileName;
+          migratedIds[oldId] = fileName;
+          needsSave = true;
+        }
+        
+        if (song.path != file.path) {
+          song.path = file.path;
+          needsSave = true;
+        }
+
+        if (song.artworkPath != null) {
+          final musicDir = await sl<MusicStorageService>().getMusicDirectory();
+          final artworkDir = p.join(musicDir.parent.path, 'artwork');
+          final newArtworkPath = p.join(artworkDir, p.basename(song.artworkPath!));
+          if (song.artworkPath != newArtworkPath) {
+            song.artworkPath = newArtworkPath;
+            needsSave = true;
+          }
+        }
+        
+        if (needsSave) {
+          await song.save();
+        }
+      } else {
+        try {
           final song = await _metadataService.read(file);
           newSongs.add(song);
+        } catch (e) {
+          // Skip
         }
-      } catch (e) {
-        // Skip files that fail metadata extraction
       }
     }
 
-    // Remove songs that no longer exist
     final toRemove = existingSongs.where((s) => !scannedPaths.contains(s.path)).toList();
     for (final s in toRemove) {
       await s.delete();
@@ -71,6 +102,39 @@ class LibraryRepository {
 
     if (newSongs.isNotEmpty) {
       await _box.addAll(newSongs);
+    }
+    
+    // Cleanup and repair playlists
+    final allValidFilenames = _box.values.map((s) => s.id).toSet();
+    bool playlistsModified = false;
+    
+    for (final playlist in _playlistsBox.values) {
+      bool playlistChanged = false;
+      final newSongIds = <String>[];
+      
+      for (final id in playlist.songIds) {
+        if (allValidFilenames.contains(id)) {
+          newSongIds.add(id);
+        } else {
+          final extractedFilename = p.basename(id);
+          if (allValidFilenames.contains(extractedFilename)) {
+            newSongIds.add(extractedFilename);
+            playlistChanged = true;
+          } else {
+            playlistChanged = true;
+          }
+        }
+      }
+      
+      if (playlistChanged) {
+        playlist.songIds = newSongIds;
+        await playlist.save();
+        playlistsModified = true;
+      }
+    }
+    
+    if (playlistsModified) {
+      await _backupPlaylists();
     }
 
     await _restorePlaylists(scanPath);
