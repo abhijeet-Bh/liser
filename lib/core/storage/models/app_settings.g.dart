@@ -26,13 +26,14 @@ class AppSettingsAdapter extends TypeAdapter<AppSettings> {
       themeColorId: fields[6] == null ? 0 : fields[6] as int,
       userName: fields[7] as String?,
       userPhotoPath: fields[8] as String?,
+      volume: fields[10] == null ? 1.0 : fields[10] as double,
     );
   }
 
   @override
   void write(BinaryWriter writer, AppSettings obj) {
     writer
-      ..writeByte(9)
+      ..writeByte(10)
       ..writeByte(0)
       ..write(obj.musicFolder)
       ..writeByte(1)
@@ -50,7 +51,9 @@ class AppSettingsAdapter extends TypeAdapter<AppSettings> {
       ..writeByte(7)
       ..write(obj.userName)
       ..writeByte(8)
-      ..write(obj.userPhotoPath);
+      ..write(obj.userPhotoPath)
+      ..writeByte(10)
+      ..write(obj.volume);
   }
 
   @override

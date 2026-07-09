@@ -1,12 +1,18 @@
 import 'dart:io';
 import 'dart:ui';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/physics.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:liser/features/player/presentation/bloc/player_bloc.dart';
 import 'package:liser/features/library/data/models/song.dart';
+import 'package:liser/features/library/data/models/playlist.dart';
+import 'package:liser/features/library/presentation/bloc/library_bloc.dart';
 import 'package:liser/app/theme/app_colors.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:liser/app/di/service_locator.dart';
+import 'package:liser/core/storage/database/hive_service.dart';
 
 class ExpandablePlayer extends StatefulWidget {
   final Widget bottomNavigationBar;
@@ -344,7 +350,7 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
                 ),
               ),
               
-              const SizedBox(height: 24),
+              if (!_isQueueMode) const SizedBox(height: 16),
               
               AnimatedSize(
                 duration: const Duration(milliseconds: 300),
@@ -352,7 +358,7 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
                 child: _isQueueMode ? const SizedBox.shrink() : _buildTitleRow(context, state, song, isDark),
               ),
               
-              const SizedBox(height: 16),
+              const SizedBox(height: 4),
               
               SliderTheme(
                 data: SliderTheme.of(context).copyWith(
@@ -455,6 +461,10 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
               ),
               
               const SizedBox(height: 8),
+              
+              _buildVolumeSlider(context, state),
+              
+              const SizedBox(height: 8),
             ],
           ),
         ),
@@ -462,69 +472,160 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
     );
   }
 
-  Widget _buildTitleRow(BuildContext context, PlayerUiState state, dynamic song, bool isDark) {
+<<<<<<< HEAD
+  Widget _buildVolumeSlider(BuildContext context, PlayerUiState state) {
     return Row(
-      key: const ValueKey('title_row'),
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
+        IconButton(
+          icon: Icon(
+            state.volume <= 0.01 ? CupertinoIcons.speaker : CupertinoIcons.speaker_1,
+            size: 20,
+            color: Theme.of(context).textTheme.bodySmall?.color,
+          ),
+          onPressed: () => context.read<PlayerBloc>().add(const DecreaseVolume()),
+        ),
         Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                song?.title ?? '',
-                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                song?.artist ?? '',
-                style: TextStyle(fontSize: 18, color: Theme.of(context).textTheme.bodySmall?.color),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 8),
-              if (song != null)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: isDark ? Colors.grey[800] : Colors.grey[300],
-                    borderRadius: BorderRadius.circular(6),
+          child: SliderTheme(
+            data: SliderTheme.of(context).copyWith(
+              trackHeight: 2,
+              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 5),
+              overlayShape: const RoundSliderOverlayShape(overlayRadius: 10),
+              activeTrackColor: Theme.of(context).textTheme.bodyMedium?.color,
+              inactiveTrackColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
+              thumbColor: Theme.of(context).textTheme.bodyMedium?.color,
+            ),
+            child: Slider(
+              value: state.volume,
+              min: 0.0,
+              max: 1.0,
+              onChanged: (value) {
+                context.read<PlayerBloc>().add(SetVolume(value));
+              },
+            ),
+          ),
+        ),
+        IconButton(
+          icon: Icon(
+            CupertinoIcons.speaker_3,
+            size: 20,
+            color: Theme.of(context).textTheme.bodySmall?.color,
+          ),
+          onPressed: () => context.read<PlayerBloc>().add(const IncreaseVolume()),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTitleRow(BuildContext context, PlayerUiState state, dynamic song, bool isDark) {
+    return Column(
+      key: const ValueKey('title_row'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+=======
+  Widget _buildTitleRow(BuildContext context, PlayerUiState state, dynamic song, bool isDark) {
+    return Column(
+      key: const ValueKey('title_row'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+>>>>>>> dev
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    song?.title ?? '',
+                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        song.isLossless ? CupertinoIcons.waveform_path_badge_plus : CupertinoIcons.waveform_path,
-                        size: 14,
-                        color: isDark ? Colors.white : Colors.black87,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        song.isLossless ? 'LOSSLESS' : 'HIGH QUALITY',
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1,
-                          color: isDark ? Colors.white : Colors.black87,
+                  const SizedBox(height: 4),
+                  Text(
+                    song?.artist ?? '',
+                    style: TextStyle(fontSize: 18, color: Theme.of(context).textTheme.bodySmall?.color),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            if (song != null)
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: Icon(song.favorite ? CupertinoIcons.heart_fill : CupertinoIcons.heart),
+                    color: song.favorite ? AppColors.primary : null,
+                    onPressed: () {
+                      context.read<PlayerBloc>().add(ToggleFavorite(song));
+                    },
+                  ),
+                  PopupMenuButton<String>(
+                    icon: const Icon(CupertinoIcons.ellipsis),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    color: Theme.of(context).colorScheme.surface,
+                    elevation: 8,
+                    onSelected: (value) {
+                      if (value == 'add_to_playlist') {
+                        _showAddToPlaylistSheet(context, song);
+                      }
+                    },
+                    itemBuilder: (context) => [
+                      const PopupMenuItem(
+                        value: 'add_to_playlist',
+                        child: Row(
+                          children: [
+                            Icon(CupertinoIcons.music_note_list, size: 20),
+                            SizedBox(width: 12),
+                            Text('Add to Playlist'),
+                          ],
                         ),
                       ),
                     ],
                   ),
-                ),
-            ],
-          ),
+                ],
+              ),
+          ],
         ),
-        if (song != null)
-          IconButton(
-            icon: Icon(song.favorite ? CupertinoIcons.heart_fill : CupertinoIcons.heart),
-            color: song.favorite ? AppColors.primary : null,
-            onPressed: () {
-              context.read<PlayerBloc>().add(ToggleFavorite(song));
-            },
+        if (song != null) ...[
+<<<<<<< HEAD
+          const SizedBox(height: 32),
+=======
+          const SizedBox(height: 12),
+>>>>>>> dev
+          Center(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+              decoration: BoxDecoration(
+                color: (isDark ? Colors.grey[800]! : Colors.grey[300]!).withValues(alpha: 0.5),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    song.isLossless ? CupertinoIcons.waveform_path_badge_plus : CupertinoIcons.waveform_path,
+                    size: 10,
+                    color: (isDark ? Colors.white : Colors.black87).withValues(alpha: 0.6),
+                  ),
+                  const SizedBox(width: 3),
+                  Text(
+                    song.isLossless ? 'LOSSLESS' : 'HIGH QUALITY',
+                    style: TextStyle(
+                      fontSize: 7.5,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1,
+                      color: (isDark ? Colors.white : Colors.black87).withValues(alpha: 0.6),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
+        ],
       ],
     );
   }
@@ -563,7 +664,7 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
           ),
         ),
         
-        const SizedBox(height: 24),
+        const SizedBox(height: 8),
         
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -587,9 +688,19 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
                 style: TextStyle(color: Colors.grey, fontSize: 16)
               )
             )
-          : ReorderableListView.builder(
-              padding: const EdgeInsets.only(top: 8, bottom: 24),
-              itemCount: queue.length - state.currentIndex - 1,
+          : ShaderMask(
+              shaderCallback: (Rect bounds) {
+                return const LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Colors.transparent, Colors.white, Colors.white, Colors.transparent],
+                  stops: [0.0, 0.05, 0.90, 1.0],
+                ).createShader(bounds);
+              },
+              blendMode: BlendMode.dstIn,
+              child: ReorderableListView.builder(
+                padding: const EdgeInsets.only(top: 16, bottom: 24),
+                itemCount: queue.length - state.currentIndex - 1,
               onReorder: (oldIndex, newIndex) {
                 setState(() {
                   if (oldIndex < newIndex) {
@@ -669,7 +780,7 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
                 );
               },
             ),
-        ),
+        ),)
       ],
     );
   }
@@ -681,15 +792,22 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
     const double miniRadius = 8.0;
     
     // Normal Full Screen Poster bounds
-    final double normalFullSize = screenWidth - 120.0;
-    final double normalFullLeft = 60.0;
+    // Removed duplicate declarations here
     
     final double safeAreaTop = MediaQuery.of(context).padding.top;
     final double safeAreaBottom = MediaQuery.of(context).padding.bottom;
     
     final double topOffset = safeAreaTop + 37.0;
-    final double bottomUIHeight = 330.0 + safeAreaBottom;
+    
+    // Increased from 330 to 420 to account for new volume slider and padding
+    final double bottomUIHeight = 420.0 + safeAreaBottom; 
     final double availableHeight = screenHeight - topOffset - bottomUIHeight;
+    
+    // Ensure the poster doesn't overflow its vertical constraints by taking the minimum
+    final double maxPosterSize = availableHeight > 64.0 ? availableHeight - 64.0 : 0;
+    final double normalFullSize = math.min(screenWidth - 120.0, maxPosterSize);
+    final double normalFullLeft = (screenWidth - normalFullSize) / 2;
+    
     final double normalFullTop = topOffset + (availableHeight / 2) - (normalFullSize / 2);
     final double normalFullRadius = 24.0;
 
@@ -748,6 +866,108 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
               ),
             ),
           ),
+        );
+      },
+    );
+  }
+  void _showAddToPlaylistSheet(BuildContext context, Song song) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (sheetContext) {
+        return ValueListenableBuilder<Box<Playlist>>(
+          valueListenable: sl<HiveService>().playlistsBox.listenable(),
+          builder: (context, box, _) {
+            final playlists = box.values.toList();
+            return DraggableScrollableSheet(
+              initialChildSize: 0.5,
+              minChildSize: 0.3,
+              maxChildSize: 0.9,
+              expand: false,
+              builder: (_, scrollController) {
+                return Container(
+                  padding: const EdgeInsets.only(top: 16),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surface,
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                  ),
+                  child: Column(
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 4,
+                        margin: const EdgeInsets.only(bottom: 24),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.withValues(alpha: 0.3),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                      const Text(
+                        'Add to Playlist',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      if (playlists.isEmpty)
+                        const Padding(
+                          padding: EdgeInsets.all(32.0),
+                          child: Text('No playlists created yet.'),
+                        )
+                      else
+                        Expanded(
+                          child: ListView.builder(
+                            controller: scrollController,
+                            itemCount: playlists.length,
+                            itemBuilder: (context, index) {
+                              final playlist = playlists[index];
+                              final isAlreadyAdded = playlist.songIds.contains(song.id);
+                              
+                              return ListTile(
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                                leading: Container(
+                                  width: 48,
+                                  height: 48,
+                                  decoration: BoxDecoration(
+                                    color: isAlreadyAdded 
+                                      ? Colors.grey.withValues(alpha: 0.1) 
+                                      : Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Icon(
+                                    isAlreadyAdded ? CupertinoIcons.checkmark_alt : CupertinoIcons.music_note_list,
+                                    color: isAlreadyAdded ? Colors.grey : Theme.of(context).colorScheme.primary,
+                                  ),
+                                ),
+                                title: Text(
+                                  playlist.name,
+                                  style: TextStyle(
+                                    color: isAlreadyAdded ? Colors.grey : null,
+                                  ),
+                                ),
+                                subtitle: Text(
+                                  '${playlist.songIds.length} songs',
+                                  style: TextStyle(
+                                    color: isAlreadyAdded ? Colors.grey : null,
+                                  ),
+                                ),
+                                onTap: isAlreadyAdded ? null : () {
+                                  context.read<LibraryBloc>().add(
+                                        AddSongToPlaylist(playlist, song),
+                                      );
+                                },
+                              );
+                            },
+                          ),
+                        ),
+                    ],
+                  ),
+                );
+              },
+            );
+          },
         );
       },
     );

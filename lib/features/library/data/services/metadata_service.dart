@@ -14,7 +14,7 @@ class MetadataService {
     );
 
     return Song(
-      id: file.path,
+      id: file.uri.pathSegments.last,
       path: file.path,
       fileName: file.uri.pathSegments.last,
       title: metadata.title?.trim().isNotEmpty == true

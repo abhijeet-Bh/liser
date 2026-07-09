@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:liser/app/bloc/app_bloc.dart';
 import 'package:liser/app/widgets/frosted_background.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
@@ -84,10 +85,14 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
                             shape: BoxShape.circle,
                             color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                           ),
-                          child: Icon(
-                            Icons.graphic_eq_rounded,
-                            size: 64,
-                            color: Theme.of(context).colorScheme.primary,
+                          child: SvgPicture.asset(
+                            'assets/icons/liser-icon.svg',
+                            width: 64,
+                            height: 64,
+                            colorFilter: ColorFilter.mode(
+                              Theme.of(context).colorScheme.primary,
+                              BlendMode.srcIn,
+                            ),
                           ),
                         ),
                         const SizedBox(height: 24),

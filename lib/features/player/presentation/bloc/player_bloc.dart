@@ -8,20 +8,30 @@ import 'package:liser/features/library/data/models/song.dart';
 import 'package:liser/features/player/data/services/audio_player_service.dart';
 import 'package:liser/features/library/data/repositories/library_repository.dart';
 import 'package:liser/app/di/service_locator.dart';
+import 'package:liser/core/services/native_volume_service.dart';
 
 part 'player_event.dart';
 part 'player_state.dart';
 
+final class _NativeVolumeChanged extends PlayerEvent {
+  const _NativeVolumeChanged(this.volume);
+  final double volume;
+}
+
 class PlayerBloc extends Bloc<PlayerEvent, PlayerUiState> {
-  PlayerBloc({required AudioPlayerService playerService})
-    : _playerService = playerService,
-      super(
+  PlayerBloc({
+    required AudioPlayerService playerService,
+    required NativeVolumeService volumeService,
+  })  : _playerService = playerService,
+        _volumeService = volumeService,
+        super(
         PlayerUiState(
           currentSong: playerService.currentSong,
           queue: playerService.queue,
           currentIndex: playerService.currentIndex,
           shuffleEnabled: playerService.shuffleEnabled,
           repeatMode: playerService.repeatMode,
+          volume: 1.0, // Temporary before initialization
         ),
       ) {
     /// User events
@@ -38,12 +48,18 @@ class PlayerBloc extends Bloc<PlayerEvent, PlayerUiState> {
     on<ClearQueue>(_onClearQueue);
     on<AddSongNext>(_onAddSongNext);
     on<AddSongToEnd>(_onAddSongToEnd);
+    on<SetVolume>(_onSetVolume);
+    on<IncreaseVolume>(_onIncreaseVolume);
+    on<DecreaseVolume>(_onDecreaseVolume);
 
     /// Internal events
     on<_PlayerStateChanged>(_onPlayerStateChanged);
     on<_PositionChanged>(_onPositionChanged);
     on<_DurationChanged>(_onDurationChanged);
     on<_CurrentSongChanged>(_onCurrentSongChanged);
+    on<_NativeVolumeChanged>(_onNativeVolumeChanged);
+
+    _initVolume();
 
     _playerStateSubscription = _playerService.playerStateStream.listen(
       (value) => add(_PlayerStateChanged(value)),
@@ -60,17 +76,25 @@ class PlayerBloc extends Bloc<PlayerEvent, PlayerUiState> {
     _currentSongSubscription = _playerService.currentSongStream.listen(
       (value) => add(_CurrentSongChanged(value)),
     );
+
+    _volumeSubscription = _volumeService.volumeStream.listen(
+      (value) => add(_NativeVolumeChanged(value)),
+    );
+  }
+
+  Future<void> _initVolume() async {
+    final vol = await _volumeService.getVolume();
+    add(_NativeVolumeChanged(vol));
   }
 
   final AudioPlayerService _playerService;
+  final NativeVolumeService _volumeService;
 
   late final StreamSubscription<PlayerState> _playerStateSubscription;
-
   late final StreamSubscription<Duration> _positionSubscription;
-
   late final StreamSubscription<Duration?> _durationSubscription;
-
   late final StreamSubscription<Song?> _currentSongSubscription;
+  late final StreamSubscription<double> _volumeSubscription;
   Future<void> _onPlaySong(PlaySong event, Emitter<PlayerUiState> emit) async {
     await _playerService.playSong(event.queue, event.song);
 
@@ -182,6 +206,43 @@ class PlayerBloc extends Bloc<PlayerEvent, PlayerUiState> {
   ) async {
     await _playerService.addToEnd(event.song);
   }
+
+  Future<void> _onSetVolume(
+    SetVolume event,
+    Emitter<PlayerUiState> emit,
+  ) async {
+    final newVolume = event.volume.clamp(0.0, 1.0);
+    await _volumeService.setVolume(newVolume);
+    emit(state.copyWith(volume: newVolume));
+  }
+
+  Future<void> _onIncreaseVolume(
+    IncreaseVolume event,
+    Emitter<PlayerUiState> emit,
+  ) async {
+    final currentVolume = state.volume;
+    final newVolume = (currentVolume + 0.1).clamp(0.0, 1.0);
+    await _volumeService.setVolume(newVolume);
+    emit(state.copyWith(volume: newVolume));
+  }
+
+  Future<void> _onDecreaseVolume(
+    DecreaseVolume event,
+    Emitter<PlayerUiState> emit,
+  ) async {
+    final currentVolume = state.volume;
+    final newVolume = (currentVolume - 0.1).clamp(0.0, 1.0);
+    await _volumeService.setVolume(newVolume);
+    emit(state.copyWith(volume: newVolume));
+  }
+
+  void _onNativeVolumeChanged(
+    _NativeVolumeChanged event,
+    Emitter<PlayerUiState> emit,
+  ) {
+    emit(state.copyWith(volume: event.volume));
+  }
+
   void _onPlayerStateChanged(
     _PlayerStateChanged event,
     Emitter<PlayerUiState> emit,
@@ -240,6 +301,7 @@ class PlayerBloc extends Bloc<PlayerEvent, PlayerUiState> {
     await _positionSubscription.cancel();
     await _durationSubscription.cancel();
     await _currentSongSubscription.cancel();
+    await _volumeSubscription.cancel();
 
     return super.close();
   }

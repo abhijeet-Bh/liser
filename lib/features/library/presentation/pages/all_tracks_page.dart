@@ -10,6 +10,9 @@ import 'package:liser/features/player/presentation/bloc/player_bloc.dart';
 import 'package:liser/app/theme/app_colors.dart';
 import 'package:liser/app/widgets/frosted_background.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:liser/app/di/service_locator.dart';
+import 'package:liser/core/storage/database/hive_service.dart';
 
 class AllTracksPage extends StatefulWidget {
   final String? artistFilter;
@@ -41,9 +44,10 @@ class _AllTracksPageState extends State<AllTracksPage> {
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (sheetContext) {
-        return BlocBuilder<LibraryBloc, LibraryState>(
-          builder: (context, state) {
-            final playlists = state.playlists;
+        return ValueListenableBuilder<Box<Playlist>>(
+          valueListenable: sl<HiveService>().playlistsBox.listenable(),
+          builder: (context, box, _) {
+            final playlists = box.values.toList();
             return DraggableScrollableSheet(
               initialChildSize: 0.5,
               minChildSize: 0.3,
@@ -84,15 +88,13 @@ class _AllTracksPageState extends State<AllTracksPage> {
                         Expanded(
                           child: ListView.builder(
                             controller: scrollController,
-                            padding: EdgeInsets.only(
-                              bottom: MediaQuery.of(sheetContext).padding.bottom + 120,
-                            ),
                             itemCount: playlists.length,
                             itemBuilder: (context, index) {
                               final playlist = playlists[index];
-                              final bool isAlreadyAdded = playlist.songIds.contains(song.id);
+                              final isAlreadyAdded = playlist.songIds.contains(song.id);
+                              
                               return ListTile(
-                                enabled: !isAlreadyAdded,
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
                                 leading: Container(
                                   width: 48,
                                   height: 48,
@@ -123,9 +125,6 @@ class _AllTracksPageState extends State<AllTracksPage> {
                                   context.read<LibraryBloc>().add(
                                         AddSongToPlaylist(playlist, song),
                                       );
-                                  // Don't pop immediately so they can see the change, or maybe just pop
-                                  // Wait, if it doesn't pop immediately they can see it real-time.
-                                  // We'll let them manually swipe it down or pop.
                                 },
                               );
                             },

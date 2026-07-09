@@ -12,6 +12,7 @@ class PlayerUiState extends Equatable {
     this.currentIndex = -1,
     this.shuffleEnabled = false,
     this.repeatMode = LoopMode.off,
+    this.volume = 1.0,
   });
 
   final PlayerStatus status;
@@ -37,6 +38,9 @@ class PlayerUiState extends Equatable {
   /// Repeat mode.
   final LoopMode repeatMode;
 
+  /// Current Volume (0.0 to 1.0).
+  final double volume;
+
   bool get hasSong => currentSong != null;
 
   bool get hasNext =>
@@ -60,6 +64,7 @@ class PlayerUiState extends Equatable {
     int? currentIndex,
     bool? shuffleEnabled,
     LoopMode? repeatMode,
+    double? volume,
   }) {
     return PlayerUiState(
       status: status ?? this.status,
@@ -70,6 +75,7 @@ class PlayerUiState extends Equatable {
       currentIndex: currentIndex ?? this.currentIndex,
       shuffleEnabled: shuffleEnabled ?? this.shuffleEnabled,
       repeatMode: repeatMode ?? this.repeatMode,
+      volume: volume ?? this.volume,
     );
   }
 
@@ -83,5 +89,6 @@ class PlayerUiState extends Equatable {
     currentIndex,
     shuffleEnabled,
     repeatMode,
+    volume,
   ];
 }
