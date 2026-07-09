@@ -9,6 +9,7 @@ import 'package:liser/features/library/data/repositories/library_repository.dart
 import 'package:liser/features/library/presentation/bloc/library_bloc.dart';
 import 'package:liser/features/player/data/services/audio_player_service.dart';
 import 'package:liser/features/player/presentation/bloc/player_bloc.dart';
+import 'package:liser/core/services/native_volume_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -37,7 +38,10 @@ Future<void> main() async {
                     ..add(LoadLibrary()),
         ),
         BlocProvider(
-          create: (_) => PlayerBloc(playerService: sl<AudioPlayerService>()),
+          create: (_) => PlayerBloc(
+            playerService: sl<AudioPlayerService>(),
+            volumeService: sl<NativeVolumeService>(),
+          ),
         ),
       ],
       child: const LiserApp(),

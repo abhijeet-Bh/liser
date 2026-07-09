@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:just_audio/just_audio.dart';
 import 'package:just_audio_background/just_audio_background.dart';
+import 'package:liser/core/storage/repositories/settings_repository.dart';
 import 'package:liser/features/library/data/models/song.dart';
 
 class AudioPlayerService {
@@ -9,6 +10,9 @@ class AudioPlayerService {
 
   final StreamController<Song?> _currentSongController =
       StreamController.broadcast();
+
+  AudioPlayerService() {
+  }
 
   Song? _currentSong;
 

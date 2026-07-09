@@ -47,6 +47,7 @@ dependencies:
   flutter_slidable: ^4.0.3
   http: ^1.6.0
   cached_network_image: ^3.4.1
+  flutter_svg: ^2.3.0
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -56,6 +57,17 @@ dev_dependencies:
   hive_generator: ^2.0.1
 
   build_runner: ^2.4.13
+  flutter_launcher_icons: ^0.14.4
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/images/
+    - assets/icons/
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  remove_alpha_ios: true
+  image_path: "assets/images/liser-logo.png"
+  min_sdk_android: 21

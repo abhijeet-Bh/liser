@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:ui';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/physics.dart';
 import 'package:flutter/cupertino.dart';
@@ -349,7 +350,7 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
                 ),
               ),
               
-              const SizedBox(height: 24),
+              if (!_isQueueMode) const SizedBox(height: 16),
               
               AnimatedSize(
                 duration: const Duration(milliseconds: 300),
@@ -357,7 +358,7 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
                 child: _isQueueMode ? const SizedBox.shrink() : _buildTitleRow(context, state, song, isDark),
               ),
               
-              const SizedBox(height: 16),
+              const SizedBox(height: 4),
               
               SliderTheme(
                 data: SliderTheme.of(context).copyWith(
@@ -460,10 +461,58 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
               ),
               
               const SizedBox(height: 8),
+              
+              _buildVolumeSlider(context, state),
+              
+              const SizedBox(height: 8),
             ],
           ),
         ),
       ),
+    );
+  }
+
+<<<<<<< HEAD
+  Widget _buildVolumeSlider(BuildContext context, PlayerUiState state) {
+    return Row(
+      children: [
+        IconButton(
+          icon: Icon(
+            state.volume <= 0.01 ? CupertinoIcons.speaker : CupertinoIcons.speaker_1,
+            size: 20,
+            color: Theme.of(context).textTheme.bodySmall?.color,
+          ),
+          onPressed: () => context.read<PlayerBloc>().add(const DecreaseVolume()),
+        ),
+        Expanded(
+          child: SliderTheme(
+            data: SliderTheme.of(context).copyWith(
+              trackHeight: 2,
+              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 5),
+              overlayShape: const RoundSliderOverlayShape(overlayRadius: 10),
+              activeTrackColor: Theme.of(context).textTheme.bodyMedium?.color,
+              inactiveTrackColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
+              thumbColor: Theme.of(context).textTheme.bodyMedium?.color,
+            ),
+            child: Slider(
+              value: state.volume,
+              min: 0.0,
+              max: 1.0,
+              onChanged: (value) {
+                context.read<PlayerBloc>().add(SetVolume(value));
+              },
+            ),
+          ),
+        ),
+        IconButton(
+          icon: Icon(
+            CupertinoIcons.speaker_3,
+            size: 20,
+            color: Theme.of(context).textTheme.bodySmall?.color,
+          ),
+          onPressed: () => context.read<PlayerBloc>().add(const IncreaseVolume()),
+        ),
+      ],
     );
   }
 
@@ -472,6 +521,13 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
       key: const ValueKey('title_row'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+=======
+  Widget _buildTitleRow(BuildContext context, PlayerUiState state, dynamic song, bool isDark) {
+    return Column(
+      key: const ValueKey('title_row'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+>>>>>>> dev
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           crossAxisAlignment: CrossAxisAlignment.center,
@@ -535,7 +591,11 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
           ],
         ),
         if (song != null) ...[
+<<<<<<< HEAD
+          const SizedBox(height: 32),
+=======
           const SizedBox(height: 12),
+>>>>>>> dev
           Center(
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
@@ -604,7 +664,7 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
           ),
         ),
         
-        const SizedBox(height: 24),
+        const SizedBox(height: 8),
         
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -628,9 +688,19 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
                 style: TextStyle(color: Colors.grey, fontSize: 16)
               )
             )
-          : ReorderableListView.builder(
-              padding: const EdgeInsets.only(top: 8, bottom: 24),
-              itemCount: queue.length - state.currentIndex - 1,
+          : ShaderMask(
+              shaderCallback: (Rect bounds) {
+                return const LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Colors.transparent, Colors.white, Colors.white, Colors.transparent],
+                  stops: [0.0, 0.05, 0.90, 1.0],
+                ).createShader(bounds);
+              },
+              blendMode: BlendMode.dstIn,
+              child: ReorderableListView.builder(
+                padding: const EdgeInsets.only(top: 16, bottom: 24),
+                itemCount: queue.length - state.currentIndex - 1,
               onReorder: (oldIndex, newIndex) {
                 setState(() {
                   if (oldIndex < newIndex) {
@@ -710,7 +780,7 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
                 );
               },
             ),
-        ),
+        ),)
       ],
     );
   }
@@ -722,15 +792,22 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
     const double miniRadius = 8.0;
     
     // Normal Full Screen Poster bounds
-    final double normalFullSize = screenWidth - 120.0;
-    final double normalFullLeft = 60.0;
+    // Removed duplicate declarations here
     
     final double safeAreaTop = MediaQuery.of(context).padding.top;
     final double safeAreaBottom = MediaQuery.of(context).padding.bottom;
     
     final double topOffset = safeAreaTop + 37.0;
-    final double bottomUIHeight = 330.0 + safeAreaBottom;
+    
+    // Increased from 330 to 420 to account for new volume slider and padding
+    final double bottomUIHeight = 420.0 + safeAreaBottom; 
     final double availableHeight = screenHeight - topOffset - bottomUIHeight;
+    
+    // Ensure the poster doesn't overflow its vertical constraints by taking the minimum
+    final double maxPosterSize = availableHeight > 64.0 ? availableHeight - 64.0 : 0;
+    final double normalFullSize = math.min(screenWidth - 120.0, maxPosterSize);
+    final double normalFullLeft = (screenWidth - normalFullSize) / 2;
+    
     final double normalFullTop = topOffset + (availableHeight / 2) - (normalFullSize / 2);
     final double normalFullRadius = 24.0;
 

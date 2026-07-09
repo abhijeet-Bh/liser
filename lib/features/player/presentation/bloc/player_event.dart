@@ -76,6 +76,22 @@ final class AddSongToEnd extends PlayerEvent {
   final Song song;
 }
 
+/// Set volume.
+final class SetVolume extends PlayerEvent {
+  const SetVolume(this.volume);
+  final double volume;
+}
+
+/// Increase volume slightly.
+final class IncreaseVolume extends PlayerEvent {
+  const IncreaseVolume();
+}
+
+/// Decrease volume slightly.
+final class DecreaseVolume extends PlayerEvent {
+  const DecreaseVolume();
+}
+
 /// Internal events.
 
 final class _PlayerStateChanged extends PlayerEvent {

@@ -31,6 +31,9 @@ class AppSettings extends HiveObject {
   @HiveField(8)
   String? userPhotoPath;
 
+  @HiveField(10, defaultValue: 1.0)
+  double volume;
+
   AppSettings({
     this.musicFolder,
     this.autoSync = true,
@@ -41,5 +44,6 @@ class AppSettings extends HiveObject {
     this.themeColorId = 0,
     this.userName,
     this.userPhotoPath,
+    this.volume = 1.0,
   });
 }
