@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:liser/core/constants/supported_audio_extensions.dart';
 import 'package:liser/core/storage/services/music_storage_service.dart';
 import 'package:path/path.dart' as p;
@@ -12,6 +13,14 @@ class ImportService {
   final MusicStorageService _storageService;
 
   Future<int> importMusic() async {
+    if (Platform.isAndroid) {
+      if (await Permission.audio.request().isGranted || await Permission.storage.request().isGranted) {
+        // Permissions granted
+      } else {
+        return 0;
+      }
+    }
+
     final result = await FilePicker.pickFiles(
       allowMultiple: true,
       type: FileType.custom,

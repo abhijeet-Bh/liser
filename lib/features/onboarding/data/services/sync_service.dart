@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:file_picker/file_picker.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SyncService {
@@ -9,6 +11,14 @@ class SyncService {
   static const String _syncFolderPathKey = 'sync_folder_path';
 
   Future<String?> selectSyncFolder() async {
+    if (Platform.isAndroid) {
+      if (await Permission.audio.request().isGranted || await Permission.storage.request().isGranted) {
+        // Permissions granted
+      } else {
+        return null;
+      }
+    }
+    
     final String? directoryPath = await FilePicker.getDirectoryPath();
 
     if (directoryPath != null) {
