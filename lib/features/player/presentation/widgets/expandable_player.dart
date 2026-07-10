@@ -472,7 +472,6 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
     );
   }
 
-<<<<<<< HEAD
   Widget _buildVolumeSlider(BuildContext context, PlayerUiState state) {
     return Row(
       children: [
@@ -521,13 +520,6 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
       key: const ValueKey('title_row'),
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-=======
-  Widget _buildTitleRow(BuildContext context, PlayerUiState state, dynamic song, bool isDark) {
-    return Column(
-      key: const ValueKey('title_row'),
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
->>>>>>> dev
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           crossAxisAlignment: CrossAxisAlignment.center,
@@ -591,11 +583,7 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
           ],
         ),
         if (song != null) ...[
-<<<<<<< HEAD
           const SizedBox(height: 32),
-=======
-          const SizedBox(height: 12),
->>>>>>> dev
           Center(
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
