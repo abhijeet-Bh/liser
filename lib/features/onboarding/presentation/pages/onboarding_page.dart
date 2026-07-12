@@ -1,8 +1,11 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:liser/app/di/service_locator.dart';
+import 'package:liser/core/widgets/warning_dialog.dart';
+import 'package:liser/features/library/presentation/bloc/library_bloc.dart';
 import 'package:liser/features/onboarding/data/repositories/onboarding_repository.dart';
 import 'package:liser/features/onboarding/presentation/bloc/onboarding_bloc.dart';
 
@@ -26,6 +29,7 @@ class _OnboardingView extends StatelessWidget {
     return BlocListener<OnboardingBloc, OnboardingState>(
       listener: (context, state) {
         if (state.status == OnboardingStatus.folderSelected) {
+          context.read<LibraryBloc>().add(LoadLibrary());
           context.go('/library');
         }
 
@@ -77,7 +81,9 @@ class _OnboardingView extends StatelessWidget {
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      'Select your music folder to start building your beautiful library.',
+                      Platform.isAndroid
+                          ? 'Import music files directly or select a folder to sync with your library.'
+                          : 'Import music files to start building your beautiful library.',
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                             color: Theme.of(context).textTheme.bodySmall?.color,
@@ -100,8 +106,18 @@ class _OnboardingView extends StatelessWidget {
                                 onPressed: state.status == OnboardingStatus.loading
                                     ? null
                                     : () {
-                                        context.read<OnboardingBloc>().add(
-                                          PickMusicFolderPressed(),
+                                        showWarningDialog(
+                                          context: context,
+                                          title: 'Import Music',
+                                          message: 'The selected songs will be imported into the app.',
+                                          icon: CupertinoIcons.folder_badge_plus,
+                                          iconColor: Theme.of(context).colorScheme.primary,
+                                          confirmText: 'Import',
+                                          onConfirm: () {
+                                            context.read<OnboardingBloc>().add(
+                                              PickMusicFolderPressed(),
+                                            );
+                                          },
                                         );
                                       },
                                 child: state.status == OnboardingStatus.loading
@@ -114,11 +130,47 @@ class _OnboardingView extends StatelessWidget {
                                         ),
                                       )
                                     : const Text(
-                                        'Choose Music Folder',
+                                        'Import Music',
                                         style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                                       ),
                               ),
                             ),
+                            if (Platform.isAndroid) ...[
+                              const SizedBox(height: 16),
+                              SizedBox(
+                                width: double.infinity,
+                                child: OutlinedButton(
+                                  style: OutlinedButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(vertical: 18),
+                                    side: BorderSide(
+                                      color: Theme.of(context).colorScheme.primary,
+                                      width: 1.5,
+                                    ),
+                                  ),
+                                  onPressed: state.status == OnboardingStatus.loading
+                                      ? null
+                                      : () {
+                                          showWarningDialog(
+                                            context: context,
+                                            title: 'Sync Folder',
+                                            message: 'The app will sync and play songs directly from the selected folder. No files will be copied.',
+                                            icon: CupertinoIcons.arrow_2_circlepath,
+                                            iconColor: const Color(0xFF10B981),
+                                            confirmText: 'Sync',
+                                            onConfirm: () {
+                                              context.read<OnboardingBloc>().add(
+                                                SyncFolderPressed(),
+                                              );
+                                            },
+                                          );
+                                        },
+                                  child: const Text(
+                                    'Sync Folder',
+                                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                                  ),
+                                ),
+                              ),
+                            ],
                             const SizedBox(height: 16),
                             TextButton(
                               onPressed: state.status == OnboardingStatus.loading

@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:liser/app/bloc/app_bloc.dart';
 import 'package:liser/features/library/presentation/bloc/library_bloc.dart';
 import 'package:liser/app/widgets/frosted_background.dart';
+import 'package:liser/core/widgets/warning_dialog.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
@@ -72,7 +73,17 @@ class SettingsPage extends StatelessWidget {
                 subtitle: Text('Add songs from your device folders', style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color)),
                 trailing: const Icon(CupertinoIcons.chevron_right, size: 20, color: Colors.grey),
                 onTap: () {
-                  context.read<LibraryBloc>().add(AddSongs());
+                  showWarningDialog(
+                    context: context,
+                    title: 'Import Music',
+                    message: 'The selected songs will be imported into the app.',
+                    icon: CupertinoIcons.folder_badge_plus,
+                    iconColor: Theme.of(context).colorScheme.primary,
+                    confirmText: 'Import',
+                    onConfirm: () {
+                      context.read<LibraryBloc>().add(AddSongs());
+                    },
+                  );
                 },
               ),
               if (!Platform.isIOS) ...[
@@ -110,7 +121,17 @@ class SettingsPage extends StatelessWidget {
                   subtitle: Text('Automatically sync songs from a selected folder', style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color)),
                   trailing: const Icon(CupertinoIcons.chevron_right, size: 20, color: Colors.grey),
                   onTap: () {
-                    context.read<LibraryBloc>().add(SyncLibraryFolder());
+                    showWarningDialog(
+                      context: context,
+                      title: 'Sync Folder',
+                      message: 'The app will sync and play songs directly from the selected folder. No files will be copied.',
+                      icon: CupertinoIcons.arrow_2_circlepath,
+                      iconColor: const Color(0xFF10B981),
+                      confirmText: 'Sync',
+                      onConfirm: () {
+                        context.read<LibraryBloc>().add(SyncLibraryFolder());
+                      },
+                    );
                   },
                 ),
               ],
