@@ -520,25 +520,21 @@ class SharingService {
       streamedRequest.contentLength = fileSize;
 
       int bytesSent = 0;
-      final fileStream = file.openRead();
+      final progressStream = file.openRead().map((chunk) {
+        bytesSent += chunk.length;
+        final progress = bytesSent / fileSize;
+        onProgress(progress < 1.0 ? progress : 0.99);
+        return chunk;
+      });
       
       final completer = Completer<bool>();
       
-      fileStream.listen(
-        (chunk) {
-          streamedRequest.sink.add(chunk);
-          final progress = bytesSent / fileSize;
-          onProgress(progress < 1.0 ? progress : 0.99);
-        },
-        onDone: () async {
-          await streamedRequest.sink.close();
-        },
-        onError: (err) {
-          streamedRequest.sink.close();
-          completer.complete(false);
-        },
-        cancelOnError: true,
-      );
+      streamedRequest.sink.addStream(progressStream).then((_) async {
+        await streamedRequest.sink.close();
+      }).catchError((err) {
+        streamedRequest.sink.close();
+        completer.complete(false);
+      });
 
       streamedRequest.send().then((response) {
         if (response.statusCode == 200) {

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -32,7 +33,29 @@ class LibraryRepository {
   final Box<Song> _box = sl<HiveService>().songsBox;
   final Box<Playlist> _playlistsBox = sl<HiveService>().playlistsBox;
 
+  Future<int>? _activeScanFuture;
+
   Future<int> scanLibrary() async {
+    if (_activeScanFuture != null) {
+      return _activeScanFuture!;
+    }
+
+    final completer = Completer<int>();
+    _activeScanFuture = completer.future;
+
+    try {
+      final result = await _scanLibraryInternal();
+      completer.complete(result);
+      return result;
+    } catch (e) {
+      completer.completeError(e);
+      rethrow;
+    } finally {
+      _activeScanFuture = null;
+    }
+  }
+
+  Future<int> _scanLibraryInternal() async {
     final String? syncFolderPath = _syncService.getSyncFolderPath();
     String scanPath;
 
