@@ -18,6 +18,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:liser/features/onboarding/data/services/sync_service.dart';
 import 'package:liser/core/services/artist_image_service.dart';
 import 'package:liser/core/services/native_volume_service.dart';
+import 'package:liser/features/sharing/data/services/sharing_service.dart';
 
 final sl = GetIt.instance;
 
@@ -58,4 +59,6 @@ Future<void> setupDependencies() async {
   sl.registerLazySingleton(() => AudioPlayerService());
   
   sl.registerLazySingleton(() => NativeVolumeService());
+  
+  sl.registerLazySingleton(() => SharingService());
 }

@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:liser/app/bloc/app_bloc.dart';
 import 'package:liser/features/library/presentation/bloc/library_bloc.dart';
 import 'package:liser/app/widgets/frosted_background.dart';
@@ -151,6 +152,44 @@ class SettingsPage extends StatelessWidget {
                 trailing: const Icon(CupertinoIcons.chevron_right, size: 20, color: Colors.grey),
                 onTap: () {
                   _showClearLibraryDialog(context);
+                },
+              ),
+              const SizedBox(height: 24),
+              _buildSectionHeader(context, 'Sharing'),
+              ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                leading: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(CupertinoIcons.share_up, color: Theme.of(context).colorScheme.primary),
+                ),
+                title: Row(
+                  children: [
+                    const Text('Liser Share ', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.redAccent.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: const Text(
+                        'BETA',
+                        style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.redAccent,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                subtitle: Text('Share music offline with nearby Liser users', style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color)),
+                trailing: const Icon(CupertinoIcons.chevron_right, size: 20, color: Colors.grey),
+                onTap: () {
+                  context.push('/settings/share');
                 },
               ),
               const SizedBox(height: 24),
