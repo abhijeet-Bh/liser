@@ -9,9 +9,9 @@ import 'package:liser/features/sharing/data/services/sharing_service.dart';
 import 'package:liser/features/sharing/presentation/bloc/sharing_bloc.dart';
 
 class RadarScanPage extends StatefulWidget {
-  final Song song;
+  final List<Song> songs;
 
-  const RadarScanPage({super.key, required this.song});
+  const RadarScanPage({super.key, required this.songs});
 
   @override
   State<RadarScanPage> createState() => _RadarScanPageState();
@@ -102,9 +102,7 @@ class _RadarScanPageState extends State<RadarScanPage> with SingleTickerProvider
                   _sharingBloc.add(
                     SendSongRequest(
                       target: manualDevice,
-                      filePath: widget.song.path,
-                      title: widget.song.title,
-                      artist: widget.song.artist,
+                      songs: widget.songs,
                     ),
                   );
                 }
@@ -166,8 +164,10 @@ class _RadarScanPageState extends State<RadarScanPage> with SingleTickerProvider
 
               if (state.status == SharingStatus.transferring) {
                 return _buildProgressView(
-                  title: 'Sending Track...',
-                  subtitle: 'Uploading "${widget.song.title}" to ${state.activeDevice?.alias}',
+                  title: widget.songs.length == 1 ? 'Sending Track...' : 'Sending Tracks...',
+                  subtitle: widget.songs.length == 1
+                      ? 'Uploading "${widget.songs.first.title}" to ${state.activeDevice?.alias}'
+                      : 'Uploading ${widget.songs.length} tracks to ${state.activeDevice?.alias}',
                   progress: state.progress,
                 );
               }
@@ -197,17 +197,37 @@ class _RadarScanPageState extends State<RadarScanPage> with SingleTickerProvider
                             children: [
                               CircleAvatar(
                                 backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.1),
-                                child: Icon(CupertinoIcons.music_note_2, color: theme.colorScheme.primary),
+                                child: Icon(
+                                  widget.songs.length == 1 
+                                      ? CupertinoIcons.music_note_2 
+                                      : CupertinoIcons.music_albums, 
+                                  color: theme.colorScheme.primary,
+                                ),
                               ),
                               const SizedBox(width: 16),
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text('SELECTED TRACK', style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold, letterSpacing: 1.1)),
+                                    Text(
+                                      widget.songs.length == 1 ? 'SELECTED TRACK' : 'SELECTED TRACKS', 
+                                      style: const TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold, letterSpacing: 1.1),
+                                    ),
                                     const SizedBox(height: 4),
-                                    Text(widget.song.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16), maxLines: 1, overflow: TextOverflow.ellipsis),
-                                    Text(widget.song.artist, style: const TextStyle(color: Colors.grey, fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis),
+                                    Text(
+                                      widget.songs.length == 1 ? widget.songs.first.title : '${widget.songs.length} Tracks', 
+                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16), 
+                                      maxLines: 1, 
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    Text(
+                                      widget.songs.length == 1 
+                                          ? widget.songs.first.artist 
+                                          : widget.songs.map((s) => s.title).join(', '), 
+                                      style: const TextStyle(color: Colors.grey, fontSize: 13), 
+                                      maxLines: 1, 
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
                                   ],
                                 ),
                               ),
@@ -322,9 +342,7 @@ class _RadarScanPageState extends State<RadarScanPage> with SingleTickerProvider
                                         _sharingBloc.add(
                                           SendSongRequest(
                                             target: device,
-                                            filePath: widget.song.path,
-                                            title: widget.song.title,
-                                            artist: widget.song.artist,
+                                            songs: widget.songs,
                                           ),
                                         );
                                       },

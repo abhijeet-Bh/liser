@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:liser/app/di/service_locator.dart';
 import 'package:liser/core/storage/services/music_storage_service.dart';
+import 'package:liser/features/library/data/models/song.dart';
 import 'package:liser/features/library/data/repositories/library_repository.dart';
 import 'package:path/path.dart' as p;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -48,22 +49,46 @@ class DiscoveredDevice {
       };
 }
 
-class PendingTransferRequest {
-  final String senderFingerprint;
-  final String senderName;
+class SharedFileItem {
   final String fileName;
   final int fileSize;
   final String title;
   final String artist;
+  final String filePath;
+
+  SharedFileItem({
+    required this.fileName,
+    required this.fileSize,
+    required this.title,
+    required this.artist,
+    this.filePath = '',
+  });
+
+  Map<String, dynamic> toJson() => {
+    'fileName': fileName,
+    'fileSize': fileSize,
+    'title': title,
+    'artist': artist,
+  };
+
+  factory SharedFileItem.fromJson(Map<String, dynamic> json) => SharedFileItem(
+    fileName: json['fileName'] ?? '',
+    fileSize: json['fileSize'] ?? 0,
+    title: json['title'] ?? 'Unknown Track',
+    artist: json['artist'] ?? 'Unknown Artist',
+  );
+}
+
+class PendingTransferRequest {
+  final String senderFingerprint;
+  final String senderName;
+  final List<SharedFileItem> files;
   final Completer<bool> completer;
 
   PendingTransferRequest({
     required this.senderFingerprint,
     required this.senderName,
-    required this.fileName,
-    required this.fileSize,
-    required this.title,
-    required this.artist,
+    required this.files,
     required this.completer,
   });
 }
@@ -83,6 +108,7 @@ class SharingService {
   final Map<String, DiscoveredDevice> _discoveredDevices = {};
   
   PendingTransferRequest? _activeIncomingRequest;
+  int _transferCompletedBytes = 0;
   
   Stream<DiscoveredDevice> get onDeviceDiscovered => _discoveryController.stream;
   List<DiscoveredDevice> get discoveredDevicesList => _discoveredDevices.values.toList();
@@ -311,10 +337,21 @@ class SharingService {
         
         final senderPrint = body['senderFingerprint'] ?? '';
         final senderName = body['senderName'] ?? 'Nearby Device';
-        final fileName = body['fileName'] ?? 'song.mp3';
-        final fileSize = body['fileSize'] ?? 0;
-        final title = body['title'] ?? 'Received Song';
-        final artist = body['artist'] ?? 'Unknown Artist';
+        
+        final List<SharedFileItem> files = [];
+        if (body['files'] != null) {
+          final list = body['files'] as List<dynamic>;
+          for (final item in list) {
+            files.add(SharedFileItem.fromJson(item as Map<String, dynamic>));
+          }
+        } else {
+          files.add(SharedFileItem(
+            fileName: body['fileName'] ?? 'song.mp3',
+            fileSize: body['fileSize'] ?? 0,
+            title: body['title'] ?? 'Received Track',
+            artist: body['artist'] ?? 'Unknown Artist',
+          ));
+        }
 
         if (visibility == 'known' && !isPaired(senderPrint)) {
           response.statusCode = HttpStatus.forbidden;
@@ -327,12 +364,10 @@ class SharingService {
         _activeIncomingRequest = PendingTransferRequest(
           senderFingerprint: senderPrint,
           senderName: senderName,
-          fileName: fileName,
-          fileSize: fileSize,
-          title: title,
-          artist: artist,
+          files: files,
           completer: completer,
         );
+        _transferCompletedBytes = 0;
 
         // Notify BLOC to show alert dialog
         onIncomingRequest(_activeIncomingRequest!);
@@ -356,8 +391,15 @@ class SharingService {
       }
       
       try {
-        final fileName = Uri.decodeComponent(request.headers.value('File-Name') ?? _activeIncomingRequest!.fileName);
-        final fileSize = int.tryParse(request.headers.value('File-Size') ?? '') ?? _activeIncomingRequest!.fileSize;
+        final totalBatchSize = _activeIncomingRequest!.files.fold<int>(0, (sum, item) => sum + item.fileSize);
+        final headerFileName = Uri.decodeComponent(request.headers.value('File-Name') ?? '');
+
+        final matchIndex = _activeIncomingRequest!.files.indexWhere((item) => item.fileName == headerFileName);
+        final item = matchIndex >= 0 
+            ? _activeIncomingRequest!.files[matchIndex] 
+            : (_activeIncomingRequest!.files.isNotEmpty ? _activeIncomingRequest!.files.first : null);
+
+        final fileName = headerFileName.isNotEmpty ? headerFileName : (item?.fileName ?? 'song.mp3');
 
         final musicDir = await sl<MusicStorageService>().getMusicDirectory();
         
@@ -372,19 +414,29 @@ class SharingService {
         await for (final chunk in request) {
           fileSink.add(chunk);
           bytesReceived += chunk.length;
-          if (fileSize > 0) {
-            onTransferProgress(bytesReceived / fileSize);
+          if (totalBatchSize > 0) {
+            onTransferProgress((_transferCompletedBytes + bytesReceived) / totalBatchSize);
           }
         }
         
         await fileSink.close();
-        
+        _transferCompletedBytes += bytesReceived;
+
+        if (matchIndex >= 0) {
+          _activeIncomingRequest!.files.removeAt(matchIndex);
+        } else if (_activeIncomingRequest!.files.isNotEmpty) {
+          _activeIncomingRequest!.files.removeAt(0);
+        }
+
         // Re-scan local library to read and cache new track metadata in Hive
         await sl<LibraryRepository>().scanLibrary();
 
         response.statusCode = HttpStatus.ok;
         response.write(jsonEncode({'success': true}));
-        _activeIncomingRequest = null;
+        
+        if (_activeIncomingRequest!.files.isEmpty) {
+          _activeIncomingRequest = null;
+        }
       } catch (e) {
         response.statusCode = HttpStatus.internalServerError;
         response.write(jsonEncode({'success': false, 'error': e.toString()}));
@@ -477,12 +529,10 @@ class SharingService {
     _discoveredDevices.clear();
   }
 
-  // Send Song to target device
-  Future<bool> sendSong({
+  // Send list of songs in a single batch request
+  Future<bool> sendSongs({
     required DiscoveredDevice target,
-    required String filePath,
-    required String title,
-    required String artist,
+    required List<Song> songs,
     required Function(double) onProgress,
   }) async {
     final url = 'http://${target.ipAddress}:${target.port}';
@@ -508,11 +558,24 @@ class SharingService {
     }
 
     // 2. Request Transfer
-    final file = File(filePath);
-    if (!await file.exists()) return false;
-    
-    final fileSize = await file.length();
-    
+    final List<SharedFileItem> fileItems = [];
+    int totalBatchSize = 0;
+    for (final song in songs) {
+      final file = File(song.path);
+      if (await file.exists()) {
+        final size = await file.length();
+        fileItems.add(SharedFileItem(
+          fileName: p.basename(song.path),
+          fileSize: size,
+          title: song.title,
+          artist: song.artist,
+          filePath: song.path,
+        ));
+        totalBatchSize += size;
+      }
+    }
+    if (fileItems.isEmpty) return false;
+
     try {
       final reqResponse = await http.post(
         Uri.parse('$url/api/send-request'),
@@ -520,10 +583,7 @@ class SharingService {
         body: jsonEncode({
           'senderFingerprint': fingerprint,
           'senderName': deviceAlias,
-          'fileName': p.basename(filePath),
-          'fileSize': fileSize,
-          'title': title,
-          'artist': artist,
+          'files': fileItems.map((item) => item.toJson()).toList(),
         }),
       ).timeout(const Duration(seconds: 30));
       
@@ -535,47 +595,56 @@ class SharingService {
       return false;
     }
 
-    // 3. Upload File Stream
-    try {
-      final uploadUri = Uri.parse('$url/api/upload');
-      final streamedRequest = http.StreamedRequest('POST', uploadUri);
-      
-      streamedRequest.headers['Content-Type'] = 'application/octet-stream';
-      streamedRequest.headers['File-Name'] = Uri.encodeComponent(p.basename(filePath));
-      streamedRequest.headers['File-Size'] = fileSize.toString();
-      streamedRequest.contentLength = fileSize;
+    // 3. Upload File Streams sequentially
+    int totalBytesSent = 0;
+    for (final item in fileItems) {
+      final file = File(item.filePath);
+      try {
+        final uploadUri = Uri.parse('$url/api/upload');
+        final streamedRequest = http.StreamedRequest('POST', uploadUri);
+        
+        streamedRequest.headers['Content-Type'] = 'application/octet-stream';
+        streamedRequest.headers['File-Name'] = Uri.encodeComponent(item.fileName);
+        streamedRequest.headers['File-Size'] = item.fileSize.toString();
+        streamedRequest.contentLength = item.fileSize;
 
-      int bytesSent = 0;
-      final progressStream = file.openRead().map((chunk) {
-        bytesSent += chunk.length;
-        final progress = bytesSent / fileSize;
-        onProgress(progress < 1.0 ? progress : 0.99);
-        return chunk;
-      });
-      
-      final completer = Completer<bool>();
-      
-      streamedRequest.sink.addStream(progressStream).then((_) async {
-        await streamedRequest.sink.close();
-      }).catchError((err) {
-        streamedRequest.sink.close();
-        completer.complete(false);
-      });
+        int fileBytesSent = 0;
+        final progressStream = file.openRead().map((chunk) {
+          fileBytesSent += chunk.length;
+          final overallProgress = (totalBytesSent + fileBytesSent) / totalBatchSize;
+          onProgress(overallProgress < 1.0 ? overallProgress : 0.99);
+          return chunk;
+        });
+        
+        final uploadCompleter = Completer<bool>();
+        
+        streamedRequest.sink.addStream(progressStream).then((_) async {
+          await streamedRequest.sink.close();
+        }).catchError((err) {
+          streamedRequest.sink.close();
+          uploadCompleter.complete(false);
+        });
 
-      streamedRequest.send().then((response) {
-        if (response.statusCode == 200) {
-          completer.complete(true);
-        } else {
-          completer.complete(false);
-        }
-      }).catchError((err) {
-        completer.complete(false);
-      });
+        streamedRequest.send().then((response) {
+          if (response.statusCode == 200) {
+            uploadCompleter.complete(true);
+          } else {
+            uploadCompleter.complete(false);
+          }
+        }).catchError((err) {
+          uploadCompleter.complete(false);
+        });
 
-      return await completer.future;
-    } catch (e) {
-      return false;
+        final fileSuccess = await uploadCompleter.future;
+        if (!fileSuccess) return false;
+
+        totalBytesSent += item.fileSize;
+      } catch (e) {
+        return false;
+      }
     }
+
+    return true;
   }
 
   void dispose() {

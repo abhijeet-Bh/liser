@@ -43,19 +43,15 @@ class RespondToRequest extends SharingEvent {
 
 class SendSongRequest extends SharingEvent {
   final DiscoveredDevice target;
-  final String filePath;
-  final String title;
-  final String artist;
+  final List<Song> songs;
 
   const SendSongRequest({
     required this.target,
-    required this.filePath,
-    required this.title,
-    required this.artist,
+    required this.songs,
   });
 
   @override
-  List<Object?> get props => [target, filePath, title, artist];
+  List<Object?> get props => [target, songs];
 }
 
 class TransferProgressUpdated extends SharingEvent {

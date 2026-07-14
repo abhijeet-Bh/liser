@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
+import 'package:liser/features/library/data/models/song.dart';
 import 'package:liser/features/sharing/data/services/sharing_service.dart';
 
 part 'sharing_event.dart';
@@ -136,11 +137,9 @@ class SharingBloc extends Bloc<SharingEvent, SharingState> {
       successMessage: () => null,
     ));
 
-    final success = await _sharingService.sendSong(
+    final success = await _sharingService.sendSongs(
       target: event.target,
-      filePath: event.filePath,
-      title: event.title,
-      artist: event.artist,
+      songs: event.songs,
       onProgress: (progress) {
         add(TransferProgressUpdated(progress));
       },
@@ -150,12 +149,14 @@ class SharingBloc extends Bloc<SharingEvent, SharingState> {
       emit(state.copyWith(
         status: SharingStatus.success,
         progress: 1.0,
-        successMessage: () => 'Song sent successfully to ${event.target.alias}!',
+        successMessage: () => event.songs.length == 1
+            ? 'Song sent successfully to ${event.target.alias}!'
+            : '${event.songs.length} songs sent successfully to ${event.target.alias}!',
       ));
     } else {
       emit(state.copyWith(
         status: SharingStatus.error,
-        errorMessage: () => 'Failed to send song. The request might have been declined or connection timed out.',
+        errorMessage: () => 'Failed to send songs. The request might have been declined or connection timed out.',
       ));
     }
   }

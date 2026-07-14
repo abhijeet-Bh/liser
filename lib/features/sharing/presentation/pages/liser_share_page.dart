@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:liser/app/di/service_locator.dart';
 import 'package:liser/app/widgets/frosted_background.dart';
+import 'package:liser/features/library/data/models/song.dart';
 import 'package:liser/features/library/data/repositories/library_repository.dart';
 import 'package:liser/features/library/presentation/bloc/library_bloc.dart';
 import 'package:liser/features/sharing/data/services/sharing_service.dart';
@@ -87,6 +88,7 @@ class _LiserSharePageState extends State<LiserSharePage> with SingleTickerProvid
       isScrollControlled: true,
       builder: (sheetContext) {
         String query = '';
+        final selectedSongs = <Song>{};
         return StatefulBuilder(
           builder: (stContext, setStateSheet) {
             final filteredSongs = songs.where((s) {
@@ -119,7 +121,7 @@ class _LiserSharePageState extends State<LiserSharePage> with SingleTickerProvid
                         ),
                       ),
                       const Text(
-                        'Select Track to Share',
+                        'Select Tracks to Share',
                         style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 12),
@@ -144,6 +146,7 @@ class _LiserSharePageState extends State<LiserSharePage> with SingleTickerProvid
                           itemCount: filteredSongs.length,
                           itemBuilder: (context, index) {
                             final song = filteredSongs[index];
+                            final isSelected = selectedSongs.contains(song);
                             return Material(
                               color: Colors.transparent,
                               child: ListTile(
@@ -152,27 +155,63 @@ class _LiserSharePageState extends State<LiserSharePage> with SingleTickerProvid
                                   width: 44,
                                   height: 44,
                                   decoration: BoxDecoration(
-                                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                                    color: isSelected 
+                                        ? Theme.of(context).colorScheme.primary 
+                                        : Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
-                                  child: Icon(CupertinoIcons.music_note, color: Theme.of(context).colorScheme.primary),
+                                  child: Icon(
+                                    isSelected ? CupertinoIcons.checkmark_alt : CupertinoIcons.music_note, 
+                                    color: isSelected ? Colors.white : Theme.of(context).colorScheme.primary,
+                                  ),
                                 ),
                                 title: Text(song.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600)),
                                 subtitle: Text(song.artist, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.grey)),
                                 onTap: () {
-                                  Navigator.pop(sheetContext);
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => RadarScanPage(song: song),
-                                    ),
-                                  );
+                                  setStateSheet(() {
+                                    if (isSelected) {
+                                      selectedSongs.remove(song);
+                                    } else {
+                                      selectedSongs.add(song);
+                                    }
+                                  });
                                 },
                               ),
                             );
                           },
                         ),
                       ),
+                      if (selectedSongs.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: SizedBox(
+                            width: double.infinity,
+                            height: 50,
+                            child: ElevatedButton(
+                              onPressed: () {
+                                Navigator.pop(sheetContext);
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => RadarScanPage(songs: selectedSongs.toList()),
+                                  ),
+                                );
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Theme.of(context).colorScheme.primary,
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                elevation: 0,
+                              ),
+                              child: Text(
+                                selectedSongs.length == 1
+                                    ? 'Share Selected Track'
+                                    : 'Share Selected (${selectedSongs.length} Tracks)',
+                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                              ),
+                            ),
+                          ),
+                        ),
                     ],
                   ),
                 );
@@ -189,7 +228,8 @@ class _LiserSharePageState extends State<LiserSharePage> with SingleTickerProvid
     _dialogOpen = true;
     
     bool alwaysTrust = false;
-    final mbSize = (request.fileSize / (1024 * 1024)).toStringAsFixed(1);
+    final totalBytes = request.files.fold<int>(0, (sum, f) => sum + f.fileSize);
+    final mbSize = (totalBytes / (1024 * 1024)).toStringAsFixed(1);
 
     showDialog(
       context: context,
@@ -203,7 +243,7 @@ class _LiserSharePageState extends State<LiserSharePage> with SingleTickerProvid
                 children: [
                   const Icon(CupertinoIcons.square_arrow_down_fill, color: Color(0xFF10B981)),
                   const SizedBox(width: 12),
-                  const Text('Incoming Track', style: TextStyle(fontWeight: FontWeight.bold)),
+                  Text(request.files.length == 1 ? 'Incoming Track' : 'Incoming Tracks', style: const TextStyle(fontWeight: FontWeight.bold)),
                 ],
               ),
               content: Column(
@@ -214,10 +254,12 @@ class _LiserSharePageState extends State<LiserSharePage> with SingleTickerProvid
                     TextSpan(
                       text: request.senderName,
                       style: const TextStyle(fontWeight: FontWeight.bold),
-                      children: const [
+                      children: [
                         TextSpan(
-                          text: ' wants to share a music track with you:',
-                          style: TextStyle(fontWeight: FontWeight.normal),
+                          text: request.files.length == 1
+                              ? ' wants to share a music track with you:'
+                              : ' wants to share ${request.files.length} tracks with you:',
+                          style: const TextStyle(fontWeight: FontWeight.normal),
                         ),
                       ],
                     ),
@@ -232,14 +274,34 @@ class _LiserSharePageState extends State<LiserSharePage> with SingleTickerProvid
                     ),
                     child: Row(
                       children: [
-                        const Icon(CupertinoIcons.music_note_2, size: 28),
+                        Icon(
+                          request.files.length == 1
+                              ? CupertinoIcons.music_note_2
+                              : CupertinoIcons.music_albums,
+                          size: 28,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(request.title, style: const TextStyle(fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
-                              Text('${request.artist} • $mbSize MB', style: const TextStyle(color: Colors.grey, fontSize: 13), maxLines: 1, overflow: TextOverflow.ellipsis),
+                              Text(
+                                request.files.length == 1
+                                    ? request.files.first.title
+                                    : '${request.files.length} Tracks',
+                                style: const TextStyle(fontWeight: FontWeight.bold),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              Text(
+                                request.files.length == 1
+                                    ? '${request.files.first.artist} • $mbSize MB'
+                                    : '${request.files.take(2).map((f) => f.title).join(", ")}${request.files.length > 2 ? "..." : ""} • $mbSize MB',
+                                style: const TextStyle(color: Colors.grey, fontSize: 13),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ],
                           ),
                         ),
