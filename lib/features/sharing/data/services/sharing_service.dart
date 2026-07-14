@@ -203,6 +203,10 @@ class SharingService {
     try {
       _udpListenSocket = await RawDatagramSocket.bind(InternetAddress.anyIPv4, defaultPort, reuseAddress: true);
       _udpListenSocket!.broadcastEnabled = true;
+      try {
+        _udpListenSocket!.joinMulticast(InternetAddress(multicastAddress));
+      } catch (_) {}
+      
       _udpListenSocket!.listen((RawSocketEvent event) {
         if (event == RawSocketEvent.read) {
           final datagram = _udpListenSocket!.receive();
@@ -224,10 +228,18 @@ class SharingService {
       // UDP listen failed
     }
 
-    // 3. Periodic broadcast to multicast group
+    // 3. Periodic broadcast to multicast & subnet broadcast
+    String? subnetBroadcast;
+    final parts = localIp.split('.');
+    if (parts.length == 4) {
+      subnetBroadcast = '${parts[0]}.${parts[1]}.${parts[2]}.255';
+    }
     _broadcastTimer = Timer.periodic(const Duration(seconds: 4), (timer) {
       _sendPresenceBroadcast(InternetAddress(multicastAddress), defaultPort);
       _sendPresenceBroadcast(InternetAddress('255.255.255.255'), defaultPort);
+      if (subnetBroadcast != null) {
+        _sendPresenceBroadcast(InternetAddress(subnetBroadcast), defaultPort);
+      }
     });
   }
 
@@ -407,8 +419,11 @@ class SharingService {
     if (localIp == null) return;
     
     try {
-      _udpBroadcastSocket = await RawDatagramSocket.bind(InternetAddress.anyIPv4, 0, reuseAddress: true);
+      _udpBroadcastSocket = await RawDatagramSocket.bind(InternetAddress(localIp), 0, reuseAddress: true);
       _udpBroadcastSocket!.broadcastEnabled = true;
+      try {
+        _udpBroadcastSocket!.joinMulticast(InternetAddress(multicastAddress));
+      } catch (_) {}
       
       _udpBroadcastSocket!.listen((RawSocketEvent event) {
         if (event == RawSocketEvent.read) {
@@ -432,12 +447,23 @@ class SharingService {
 
       // Send initial discovery packet
       final queryPacket = jsonEncode({'query': 'discover'});
+      String? subnetBroadcast;
+      final parts = localIp.split('.');
+      if (parts.length == 4) {
+        subnetBroadcast = '${parts[0]}.${parts[1]}.${parts[2]}.255';
+      }
+
       try {
         _udpBroadcastSocket!.send(utf8.encode(queryPacket), InternetAddress(multicastAddress), defaultPort);
       } catch (_) {}
       try {
         _udpBroadcastSocket!.send(utf8.encode(queryPacket), InternetAddress('255.255.255.255'), defaultPort);
       } catch (_) {}
+      if (subnetBroadcast != null) {
+        try {
+          _udpBroadcastSocket!.send(utf8.encode(queryPacket), InternetAddress(subnetBroadcast), defaultPort);
+        } catch (_) {}
+      }
       
     } catch (e) {
       // Discovery socket open failed
