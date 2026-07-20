@@ -156,9 +156,7 @@ class PlayerBloc extends Bloc<PlayerEvent, PlayerUiState> {
     ToggleFavorite event,
     Emitter<PlayerUiState> emit,
   ) async {
-    event.song.favorite = !event.song.favorite;
-
-    await event.song.save();
+    await sl<LibraryRepository>().toggleFavorite(event.song);
 
     if (state.currentSong?.id == event.song.id) {
       emit(state.copyWith(currentSong: event.song));

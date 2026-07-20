@@ -1,5 +1,6 @@
 import 'package:get_it/get_it.dart';
 
+import 'package:liser/core/storage/database/app_database.dart';
 import 'package:liser/core/storage/database/hive_service.dart';
 import 'package:liser/core/storage/repositories/settings_repository.dart';
 import 'package:liser/core/storage/services/music_storage_service.dart';
@@ -28,11 +29,14 @@ Future<void> setupDependencies() async {
   sl.registerSingleton<SharedPreferences>(prefs);
 
   final hiveService = HiveService();
-
   await hiveService.init();
+
+  final appDatabase = AppDatabase();
+  sl.registerSingleton<AppDatabase>(appDatabase);
 
   sl.registerSingleton<HiveService>(hiveService);
   sl.registerSingleton<SyncService>(SyncService(sharedPreferences: sl()));
+
 
   sl.registerLazySingleton(() => SettingsRepository());
 

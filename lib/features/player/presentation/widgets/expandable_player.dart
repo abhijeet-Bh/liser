@@ -11,9 +11,8 @@ import 'package:liser/features/library/data/models/song.dart';
 import 'package:liser/features/library/data/models/playlist.dart';
 import 'package:liser/features/library/presentation/bloc/library_bloc.dart';
 import 'package:liser/app/theme/app_colors.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 import 'package:liser/app/di/service_locator.dart';
-import 'package:liser/core/storage/database/hive_service.dart';
+import 'package:liser/features/library/data/repositories/library_repository.dart';
 
 class ExpandablePlayer extends StatefulWidget {
   final Widget bottomNavigationBar;
@@ -896,10 +895,10 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (sheetContext) {
-        return ValueListenableBuilder<Box<Playlist>>(
-          valueListenable: sl<HiveService>().playlistsBox.listenable(),
-          builder: (context, box, _) {
-            final playlists = box.values.toList();
+        return StreamBuilder<List<Playlist>>(
+          stream: sl<LibraryRepository>().watchPlaylists(),
+          builder: (context, snapshot) {
+            final playlists = snapshot.data ?? [];
             return DraggableScrollableSheet(
               initialChildSize: 0.5,
               minChildSize: 0.3,

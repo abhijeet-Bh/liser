@@ -35,6 +35,8 @@ dependencies:
   cached_network_image: ^3.4.1
   flutter_svg: ^2.3.0
   package_info_plus: ^9.0.1
+  drift: ^2.21.0
+  sqlite3_flutter_libs: ^0.6.0+eol
 
 
 dev_dependencies:
@@ -45,6 +47,7 @@ dev_dependencies:
   hive_generator: ^2.0.1
   build_runner: ^2.4.13
   flutter_launcher_icons: ^0.14.4
+  drift_dev: ^2.21.2
 
 flutter:
   uses-material-design: true
