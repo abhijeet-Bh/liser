@@ -51,6 +51,11 @@ final class ToggleShuffle extends PlayerEvent {
   const ToggleShuffle();
 }
 
+/// Toggle repeat mode.
+final class ToggleRepeatMode extends PlayerEvent {
+  const ToggleRepeatMode();
+}
+
 /// Open queue page.
 final class OpenQueueRequested extends PlayerEvent {
   const OpenQueueRequested();

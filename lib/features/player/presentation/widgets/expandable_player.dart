@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/physics.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:just_audio/just_audio.dart';
 import 'package:liser/features/player/presentation/bloc/player_bloc.dart';
 import 'package:liser/features/library/data/models/song.dart';
 import 'package:liser/features/library/data/models/playlist.dart';
@@ -436,12 +437,43 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  IconButton(
-                    icon: const Icon(CupertinoIcons.shuffle),
-                    color: state.shuffleEnabled ? AppColors.primary : Theme.of(context).textTheme.bodySmall?.color,
-                    onPressed: () {
-                      context.read<PlayerBloc>().add(ToggleShuffle());
-                    },
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(CupertinoIcons.shuffle),
+                        color: state.shuffleEnabled ? AppColors.primary : Theme.of(context).textTheme.bodySmall?.color,
+                        onPressed: () {
+                          context.read<PlayerBloc>().add(ToggleShuffle());
+                        },
+                      ),
+                      IconButton(
+                        icon: state.repeatMode == LoopMode.one
+                            ? const Icon(CupertinoIcons.repeat_1)
+                            : state.repeatMode == LoopMode.all
+                                ? const Icon(CupertinoIcons.repeat)
+                                : Stack(
+                                    alignment: Alignment.center,
+                                    children: [
+                                      const Icon(CupertinoIcons.repeat),
+                                      Transform.rotate(
+                                        angle: -0.785, // -45 degrees
+                                        child: Container(
+                                          width: 2,
+                                          height: 22,
+                                          color: Theme.of(context).textTheme.bodySmall?.color,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                        color: state.repeatMode != LoopMode.off
+                            ? AppColors.primary
+                            : Theme.of(context).textTheme.bodySmall?.color,
+                        onPressed: () {
+                          context.read<PlayerBloc>().add(const ToggleRepeatMode());
+                        },
+                      ),
+                    ],
                   ),
                   IconButton(
                     icon: const Icon(CupertinoIcons.list_bullet),
