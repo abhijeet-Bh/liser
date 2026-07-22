@@ -136,6 +136,11 @@ class AppDatabase extends _$AppDatabase {
   }
 
   Future<void> addSongToPlaylist(String playlistId, String songId) async {
+    final alreadyExists = await (select(playlistSongs)
+          ..where((tbl) => tbl.playlistId.equals(playlistId) & tbl.songId.equals(songId)))
+        .get();
+    if (alreadyExists.isNotEmpty) return;
+
     final existing = await (select(playlistSongs)
           ..where((tbl) => tbl.playlistId.equals(playlistId))
           ..orderBy([(tbl) => OrderingTerm.desc(tbl.position)]))
@@ -178,6 +183,6 @@ LazyDatabase _openConnection() {
   return LazyDatabase(() async {
     final dbFolder = await getApplicationDocumentsDirectory();
     final file = File(p.join(dbFolder.path, 'liser_db.sqlite'));
-    return NativeDatabase.createInBackground(file);
+    return NativeDatabase(file);
   });
 }

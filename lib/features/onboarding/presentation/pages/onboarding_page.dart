@@ -9,6 +9,8 @@ import 'package:liser/features/library/presentation/bloc/library_bloc.dart';
 import 'package:liser/features/onboarding/data/repositories/onboarding_repository.dart';
 import 'package:liser/features/onboarding/presentation/bloc/onboarding_bloc.dart';
 
+import 'package:liser/core/utils/app_toast.dart';
+
 class OnboardingPage extends StatelessWidget {
   const OnboardingPage({super.key});
 
@@ -34,9 +36,7 @@ class _OnboardingView extends StatelessWidget {
         }
 
         if (state.status == OnboardingStatus.error) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(state.error ?? 'Something went wrong')),
-          );
+          AppToast.show(context, state.error ?? 'Something went wrong');
         }
       },
       child: Scaffold(

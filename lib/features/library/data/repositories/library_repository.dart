@@ -45,78 +45,86 @@ class LibraryRepository {
   Future<void> _migrateFromHiveToDrift() async {
     try {
       if (await Hive.boxExists('songs')) {
-        final box = await Hive.openBox<dynamic>('songs');
-        if (box.isNotEmpty) {
-          final List<SongsCompanion> companions = [];
-          for (final value in box.values) {
-            if (value != null) {
-              try {
-                final id = value.id?.toString() ?? value['id']?.toString() ?? '';
-                if (id.isEmpty) continue;
-                companions.add(
-                  SongsCompanion(
-                    id: Value(id),
-                    path: Value(value.path?.toString() ?? ''),
-                    fileName: Value(value.fileName?.toString() ?? ''),
-                    title: Value(value.title?.toString() ?? ''),
-                    artist: Value(value.artist?.toString() ?? ''),
-                    album: Value(value.album?.toString() ?? ''),
-                    albumArtist: Value(value.albumArtist?.toString() ?? ''),
-                    genre: Value(value.genre?.toString() ?? ''),
-                    trackNumber: Value(int.tryParse(value.trackNumber?.toString() ?? '0') ?? 0),
-                    discNumber: Value(int.tryParse(value.discNumber?.toString() ?? '0') ?? 0),
-                    year: Value(int.tryParse(value.year?.toString() ?? '0') ?? 0),
-                    duration: Value(int.tryParse(value.duration?.toString() ?? '0') ?? 0),
-                    fileSize: Value(int.tryParse(value.fileSize?.toString() ?? '0') ?? 0),
-                    lastModified: Value(value.lastModified as DateTime? ?? DateTime.now()),
-                    favorite: Value(value.favorite as bool? ?? false),
-                    playCount: Value(value.playCount as int? ?? 0),
-                    lastPlayed: Value(value.lastPlayed as DateTime?),
-                    artworkPath: Value(value.artworkPath?.toString()),
-                    isLossless: Value(value.isLossless as bool? ?? false),
-                    dateAdded: Value(value.lastModified as DateTime? ?? DateTime.now()),
-                    sourceMode: Value('local'),
-                  ),
-                );
-              } catch (_) {}
+        try {
+          final box = await Hive.openBox<dynamic>('songs');
+          if (box.isNotEmpty) {
+            final List<SongsCompanion> companions = [];
+            for (final value in box.values) {
+              if (value != null) {
+                try {
+                  final id = value.id?.toString() ?? value['id']?.toString() ?? '';
+                  if (id.isEmpty) continue;
+                  companions.add(
+                    SongsCompanion(
+                      id: Value(id),
+                      path: Value(value.path?.toString() ?? ''),
+                      fileName: Value(value.fileName?.toString() ?? ''),
+                      title: Value(value.title?.toString() ?? ''),
+                      artist: Value(value.artist?.toString() ?? ''),
+                      album: Value(value.album?.toString() ?? ''),
+                      albumArtist: Value(value.albumArtist?.toString() ?? ''),
+                      genre: Value(value.genre?.toString() ?? ''),
+                      trackNumber: Value(int.tryParse(value.trackNumber?.toString() ?? '0') ?? 0),
+                      discNumber: Value(int.tryParse(value.discNumber?.toString() ?? '0') ?? 0),
+                      year: Value(int.tryParse(value.year?.toString() ?? '0') ?? 0),
+                      duration: Value(int.tryParse(value.duration?.toString() ?? '0') ?? 0),
+                      fileSize: Value(int.tryParse(value.fileSize?.toString() ?? '0') ?? 0),
+                      lastModified: Value(value.lastModified as DateTime? ?? DateTime.now()),
+                      favorite: Value(value.favorite as bool? ?? false),
+                      playCount: Value(value.playCount as int? ?? 0),
+                      lastPlayed: Value(value.lastPlayed as DateTime?),
+                      artworkPath: Value(value.artworkPath?.toString()),
+                      isLossless: Value(value.isLossless as bool? ?? false),
+                      dateAdded: Value(value.lastModified as DateTime? ?? DateTime.now()),
+                      sourceMode: Value('local'),
+                    ),
+                  );
+                } catch (_) {}
+              }
             }
+            if (companions.isNotEmpty) {
+              await _db.insertSongs(companions);
+            }
+            await box.clear();
+            await box.close();
           }
-          if (companions.isNotEmpty) {
-            await _db.insertSongs(companions);
-          }
-          await box.clear();
-          await box.close();
+        } catch (_) {}
+        try {
           await Hive.deleteBoxFromDisk('songs');
-        }
+        } catch (_) {}
       }
 
       if (await Hive.boxExists('playlists')) {
-        final box = await Hive.openBox<dynamic>('playlists');
-        if (box.isNotEmpty) {
-          for (final value in box.values) {
-            if (value != null) {
-              try {
-                final id = value.id?.toString() ?? value['id']?.toString() ?? '';
-                final name = value.name?.toString() ?? '';
-                final songIds = (value.songIds as List?)?.map((e) => e.toString()).toList() ?? [];
-                if (id.isNotEmpty) {
-                  await _db.insertPlaylist(PlaylistsCompanion(
-                    id: Value(id),
-                    name: Value(name),
-                    createdAt: Value(value.createdAt as DateTime? ?? DateTime.now()),
-                    coverPath: Value(value.coverPath?.toString()),
-                  ));
-                  for (int i = 0; i < songIds.length; i++) {
-                    await _db.addSongToPlaylist(id, songIds[i]);
+        try {
+          final box = await Hive.openBox<dynamic>('playlists');
+          if (box.isNotEmpty) {
+            for (final value in box.values) {
+              if (value != null) {
+                try {
+                  final id = value.id?.toString() ?? value['id']?.toString() ?? '';
+                  final name = value.name?.toString() ?? '';
+                  final songIds = (value.songIds as List?)?.map((e) => e.toString()).toList() ?? [];
+                  if (id.isNotEmpty) {
+                    await _db.insertPlaylist(PlaylistsCompanion(
+                      id: Value(id),
+                      name: Value(name),
+                      createdAt: Value(value.createdAt as DateTime? ?? DateTime.now()),
+                      coverPath: Value(value.coverPath?.toString()),
+                    ));
+                    for (int i = 0; i < songIds.length; i++) {
+                      await _db.addSongToPlaylist(id, songIds[i]);
+                    }
                   }
-                }
-              } catch (_) {}
+                } catch (_) {}
+              }
             }
+            await box.clear();
+            await box.close();
           }
-          await box.clear();
-          await box.close();
+        } catch (_) {}
+        try {
           await Hive.deleteBoxFromDisk('playlists');
-        }
+        } catch (_) {}
       }
     } catch (_) {
       // Ignore migration errors
@@ -288,17 +296,30 @@ class LibraryRepository {
   }
 
   Stream<List<Playlist>> watchPlaylists() {
-    return _db.watchAllPlaylists().asyncMap((pDataList) async {
-      final playlists = <Playlist>[];
-      for (final pData in pDataList) {
-        final sDataList = await _db.getSongsForPlaylist(pData.id);
-        playlists.add(Playlist.fromDrift(
-          pData,
-          songIds: sDataList.map((s) => s.id).toList(),
-        ));
-      }
-      return playlists;
-    });
+    final controller = StreamController<List<Playlist>>();
+    StreamSubscription? sub1;
+    StreamSubscription? sub2;
+
+    void update() async {
+      try {
+        final playlists = await getPlaylists();
+        if (!controller.isClosed) {
+          controller.add(playlists);
+        }
+      } catch (_) {}
+    }
+
+    sub1 = _db.select(_db.playlists).watch().listen((_) => update());
+    sub2 = _db.select(_db.playlistSongs).watch().listen((_) => update());
+
+    controller.onCancel = () {
+      sub1?.cancel();
+      sub2?.cancel();
+    };
+
+    update();
+
+    return controller.stream;
   }
 
   Future<void> createPlaylist(String name) async {

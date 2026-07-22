@@ -14,6 +14,10 @@ import 'package:liser/app/theme/app_colors.dart';
 import 'package:liser/app/di/service_locator.dart';
 import 'package:liser/features/library/data/repositories/library_repository.dart';
 
+import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
+import 'package:liser/core/utils/app_toast.dart';
+
 class ExpandablePlayer extends StatefulWidget {
   final Widget bottomNavigationBar;
   
@@ -35,6 +39,7 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
   late AnimationController _queueController;
   final double _miniPlayerHeight = 66.0;
   bool _isQueueMode = false;
+  DateTime? _lastBackPressTime;
 
   @override
   void initState() {
@@ -115,14 +120,44 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
 
   @override
   Widget build(BuildContext context) {
-    return BlocConsumer<PlayerBloc, PlayerUiState>(
-      listenWhen: (prev, curr) => prev.queue != curr.queue || prev.currentIndex != curr.currentIndex,
-      listener: (context, state) {
-        _optimisticQueue = null;
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+
+        if (context.canPop()) {
+          context.pop();
+          return;
+        }
+
+        if (_controller.value > 0.0) {
+          _controller.animateTo(0.0, curve: Curves.easeOutCubic, duration: const Duration(milliseconds: 200));
+          if (_isQueueMode) {
+            setState(() {
+              _isQueueMode = false;
+              _queueController.reverse();
+            });
+          }
+          return;
+        }
+
+        final now = DateTime.now();
+        if (_lastBackPressTime == null ||
+            now.difference(_lastBackPressTime!) > const Duration(seconds: 2)) {
+          _lastBackPressTime = now;
+          AppToast.show(context, 'Press back again to exit');
+        } else {
+          SystemNavigator.pop();
+        }
       },
-      builder: (context, state) {
-        final song = state.currentSong;
-        final hasSong = song != null;
+      child: BlocConsumer<PlayerBloc, PlayerUiState>(
+        listenWhen: (prev, curr) => prev.queue != curr.queue || prev.currentIndex != curr.currentIndex,
+        listener: (context, state) {
+          _optimisticQueue = null;
+        },
+        builder: (context, state) {
+          final song = state.currentSong;
+          final hasSong = song != null;
 
         return LayoutBuilder(
           builder: (context, constraints) {
@@ -246,8 +281,9 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
           }
         );
       },
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildMiniPlayerUI(BuildContext context, PlayerUiState state, dynamic song) {
     return Column(
@@ -951,31 +987,43 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
                                   height: 48,
                                   decoration: BoxDecoration(
                                     color: isAlreadyAdded 
-                                      ? Colors.grey.withValues(alpha: 0.1) 
-                                      : Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                                      ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.2) 
+                                      : Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: Icon(
                                     isAlreadyAdded ? CupertinoIcons.checkmark_alt : CupertinoIcons.music_note_list,
-                                    color: isAlreadyAdded ? Colors.grey : Theme.of(context).colorScheme.primary,
+                                    color: isAlreadyAdded ? Theme.of(context).colorScheme.primary : Colors.grey,
                                   ),
                                 ),
                                 title: Text(
                                   playlist.name,
-                                  style: TextStyle(
-                                    color: isAlreadyAdded ? Colors.grey : null,
-                                  ),
+                                  style: const TextStyle(fontWeight: FontWeight.w600),
                                 ),
                                 subtitle: Text(
                                   '${playlist.songIds.length} songs',
                                   style: TextStyle(
-                                    color: isAlreadyAdded ? Colors.grey : null,
+                                    color: Theme.of(context).textTheme.bodySmall?.color,
                                   ),
                                 ),
-                                onTap: isAlreadyAdded ? null : () {
-                                  context.read<LibraryBloc>().add(
-                                        AddSongToPlaylist(playlist, song),
-                                      );
+                                trailing: Icon(
+                                  isAlreadyAdded 
+                                      ? CupertinoIcons.checkmark_circle_fill 
+                                      : CupertinoIcons.circle,
+                                  color: isAlreadyAdded 
+                                      ? Theme.of(context).colorScheme.primary 
+                                      : Colors.white30,
+                                ),
+                                onTap: () {
+                                  if (isAlreadyAdded) {
+                                    context.read<LibraryBloc>().add(
+                                          RemoveSongFromPlaylist(playlist, song),
+                                        );
+                                  } else {
+                                    context.read<LibraryBloc>().add(
+                                          AddSongToPlaylist(playlist, song),
+                                        );
+                                  }
                                 },
                               );
                             },
