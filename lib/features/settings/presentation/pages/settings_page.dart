@@ -3,9 +3,12 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:liser/app/bloc/app_bloc.dart';
 import 'package:liser/features/library/presentation/bloc/library_bloc.dart';
 import 'package:liser/app/widgets/frosted_background.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:liser/core/widgets/warning_dialog.dart';
 
 class SettingsPage extends StatelessWidget {
@@ -154,6 +157,44 @@ class SettingsPage extends StatelessWidget {
                 },
               ),
               const SizedBox(height: 24),
+              _buildSectionHeader(context, 'Sharing'),
+              ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                leading: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(CupertinoIcons.share_up, color: Theme.of(context).colorScheme.primary),
+                ),
+                title: Row(
+                  children: [
+                    const Text('Liser Share ', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.redAccent.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: const Text(
+                        'BETA',
+                        style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.redAccent,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                subtitle: Text('Share music offline with nearby Liser users', style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color)),
+                trailing: const Icon(CupertinoIcons.chevron_right, size: 20, color: Colors.grey),
+                onTap: () {
+                  context.push('/settings/share');
+                },
+              ),
+              const SizedBox(height: 24),
               _buildSectionHeader(context, 'Display'),
               BlocBuilder<AppBloc, AppState>(
                 builder: (context, state) {
@@ -226,6 +267,68 @@ class SettingsPage extends StatelessWidget {
                     },
                   );
                 },
+              ),
+              const SizedBox(height: 24),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Divider(
+                  height: 1,
+                  thickness: 1,
+                  color: Theme.of(context).dividerColor.withValues(alpha: 0.1),
+                ),
+              ),
+              const SizedBox(height: 36),
+              Center(
+                child: Opacity(
+                  opacity: 0.35,
+                  child: Column(
+                    children: [
+                      SizedBox(
+                        height: 25,
+                        child: OverflowBox(
+                          maxHeight: 80,
+                          child: SvgPicture.asset(
+                            'assets/icons/liser-logo.svg',
+                            width: 220,
+                            height: 80,
+                            fit: BoxFit.contain,
+                            colorFilter: ColorFilter.mode(
+                              Theme.of(context).colorScheme.onSurface,
+                              BlendMode.srcIn,
+                            ),
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: 10),
+                      Text(
+                        'By BLUFIN DESIGN Solutions',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          letterSpacing: 1.0,
+                        ),
+                      ),
+                      FutureBuilder<PackageInfo>(
+                        future: PackageInfo.fromPlatform(),
+                        builder: (context, snapshot) {
+                          if (snapshot.hasData) {
+                            return Text(
+                              'v${snapshot.data!.version}',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w400,
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                letterSpacing: 0.8,
+                              ),
+                            );
+                          }
+                          return const SizedBox.shrink();
+                        },
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ],
           ),

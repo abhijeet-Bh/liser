@@ -43,6 +43,7 @@ class PlayerBloc extends Bloc<PlayerEvent, PlayerUiState> {
     on<ReplaySong>(_onReplaySong);
     on<ToggleFavorite>(_onToggleFavorite);
     on<ToggleShuffle>(_onToggleShuffle);
+    on<ToggleRepeatMode>(_onToggleRepeatMode);
     on<OpenQueueRequested>(_onOpenQueueRequested);
     on<ReorderQueue>(_onReorderQueue);
     on<ClearQueue>(_onClearQueue);
@@ -155,9 +156,7 @@ class PlayerBloc extends Bloc<PlayerEvent, PlayerUiState> {
     ToggleFavorite event,
     Emitter<PlayerUiState> emit,
   ) async {
-    event.song.favorite = !event.song.favorite;
-
-    await event.song.save();
+    await sl<LibraryRepository>().toggleFavorite(event.song);
 
     if (state.currentSong?.id == event.song.id) {
       emit(state.copyWith(currentSong: event.song));
@@ -170,6 +169,14 @@ class PlayerBloc extends Bloc<PlayerEvent, PlayerUiState> {
   ) async {
     await _playerService.toggleShuffle();
     emit(state.copyWith(shuffleEnabled: _playerService.shuffleEnabled));
+  }
+
+  Future<void> _onToggleRepeatMode(
+    ToggleRepeatMode event,
+    Emitter<PlayerUiState> emit,
+  ) async {
+    await _playerService.cycleRepeatMode();
+    emit(state.copyWith(repeatMode: _playerService.repeatMode));
   }
 
   Future<void> _onOpenQueueRequested(

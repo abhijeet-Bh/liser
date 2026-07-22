@@ -1,5 +1,6 @@
 import 'package:get_it/get_it.dart';
 
+import 'package:liser/core/storage/database/app_database.dart';
 import 'package:liser/core/storage/database/hive_service.dart';
 import 'package:liser/core/storage/repositories/settings_repository.dart';
 import 'package:liser/core/storage/services/music_storage_service.dart';
@@ -18,6 +19,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:liser/features/onboarding/data/services/sync_service.dart';
 import 'package:liser/core/services/artist_image_service.dart';
 import 'package:liser/core/services/native_volume_service.dart';
+import 'package:liser/features/sharing/data/services/sharing_service.dart';
 
 final sl = GetIt.instance;
 
@@ -27,11 +29,14 @@ Future<void> setupDependencies() async {
   sl.registerSingleton<SharedPreferences>(prefs);
 
   final hiveService = HiveService();
-
   await hiveService.init();
+
+  final appDatabase = AppDatabase();
+  sl.registerSingleton<AppDatabase>(appDatabase);
 
   sl.registerSingleton<HiveService>(hiveService);
   sl.registerSingleton<SyncService>(SyncService(sharedPreferences: sl()));
+
 
   sl.registerLazySingleton(() => SettingsRepository());
 
@@ -58,4 +63,6 @@ Future<void> setupDependencies() async {
   sl.registerLazySingleton(() => AudioPlayerService());
   
   sl.registerLazySingleton(() => NativeVolumeService());
+  
+  sl.registerLazySingleton(() => SharingService());
 }

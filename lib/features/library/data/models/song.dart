@@ -1,65 +1,28 @@
-import 'package:hive/hive.dart';
+import 'package:drift/drift.dart' as drift;
+import 'package:liser/core/storage/database/app_database.dart';
 
-part 'song.g.dart';
-
-@HiveType(typeId: 1)
-class Song extends HiveObject {
-  @HiveField(0)
+class Song {
   String id;
-
-  @HiveField(1)
   String path;
-
-  @HiveField(2)
   String fileName;
-
-  @HiveField(3)
   String title;
-
-  @HiveField(4)
   String artist;
-
-  @HiveField(5)
   String album;
-
-  @HiveField(6)
   String albumArtist;
-
-  @HiveField(7)
   String genre;
-
-  @HiveField(8)
   int trackNumber;
-
-  @HiveField(9)
   int discNumber;
-
-  @HiveField(10)
   int year;
-
-  @HiveField(11)
   int duration;
-
-  @HiveField(12)
   int fileSize;
-
-  @HiveField(13)
   DateTime lastModified;
-
-  @HiveField(14)
   bool favorite;
-
-  @HiveField(15)
   int playCount;
-
-  @HiveField(16)
   DateTime? lastPlayed;
-
-  @HiveField(17)
   String? artworkPath;
-
-  @HiveField(18)
   bool isLossless;
+  DateTime dateAdded;
+  String sourceMode;
 
   Song({
     required this.id,
@@ -81,5 +44,60 @@ class Song extends HiveObject {
     this.lastPlayed,
     this.artworkPath,
     this.isLossless = false,
-  });
+    DateTime? dateAdded,
+    this.sourceMode = 'local',
+  }) : dateAdded = dateAdded ?? DateTime.now();
+
+  factory Song.fromDrift(SongData data) {
+    return Song(
+      id: data.id,
+      path: data.path,
+      fileName: data.fileName,
+      title: data.title,
+      artist: data.artist,
+      album: data.album,
+      albumArtist: data.albumArtist,
+      genre: data.genre,
+      trackNumber: data.trackNumber,
+      discNumber: data.discNumber,
+      year: data.year,
+      duration: data.duration,
+      fileSize: data.fileSize,
+      lastModified: data.lastModified,
+      favorite: data.favorite,
+      playCount: data.playCount,
+      lastPlayed: data.lastPlayed,
+      artworkPath: data.artworkPath,
+      isLossless: data.isLossless,
+      dateAdded: data.dateAdded,
+      sourceMode: data.sourceMode,
+    );
+  }
+
+  SongsCompanion toDriftCompanion() {
+    return SongsCompanion(
+      id: drift.Value(id),
+      path: drift.Value(path),
+      fileName: drift.Value(fileName),
+      title: drift.Value(title),
+      artist: drift.Value(artist),
+      album: drift.Value(album),
+      albumArtist: drift.Value(albumArtist),
+      genre: drift.Value(genre),
+      trackNumber: drift.Value(trackNumber),
+      discNumber: drift.Value(discNumber),
+      year: drift.Value(year),
+      duration: drift.Value(duration),
+      fileSize: drift.Value(fileSize),
+      lastModified: drift.Value(lastModified),
+      favorite: drift.Value(favorite),
+      playCount: drift.Value(playCount),
+      lastPlayed: drift.Value(lastPlayed),
+      artworkPath: drift.Value(artworkPath),
+      isLossless: drift.Value(isLossless),
+      dateAdded: drift.Value(dateAdded),
+      sourceMode: drift.Value(sourceMode),
+    );
+  }
 }
+

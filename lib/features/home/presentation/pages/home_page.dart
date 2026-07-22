@@ -14,6 +14,8 @@ import 'package:liser/app/di/service_locator.dart';
 import 'package:liser/core/services/artist_image_service.dart';
 import 'package:liser/features/profile/presentation/widgets/profile_picture_widget.dart';
 
+import 'package:flutter_svg/flutter_svg.dart';
+
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -58,26 +60,20 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
-          title: ShaderMask(
-            shaderCallback: (bounds) => LinearGradient(
-              colors: [
-                Theme.of(context).colorScheme.primary,
-                Theme.of(context).colorScheme.secondary,
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ).createShader(bounds),
-            child: const Text(
-              'LISER',
-              style: TextStyle(
-                fontWeight: FontWeight.w900,
-                fontSize: 32,
-                letterSpacing: 2,
-                color: Colors.white,
+          title: Align(
+            alignment: Alignment.centerLeft,
+            child: SvgPicture.asset(
+              'assets/icons/liser-logo.svg',
+              width: 220,
+              height: 100,
+              fit: BoxFit.contain,
+              colorFilter: const ColorFilter.mode(
+                Colors.white,
+                BlendMode.srcIn,
               ),
             ),
           ),
-          toolbarHeight: 80,
+          toolbarHeight: 70,
           actions: [
             BlocBuilder<AppBloc, AppState>(
               builder: (context, appState) {

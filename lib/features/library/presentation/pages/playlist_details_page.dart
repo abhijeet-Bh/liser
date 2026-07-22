@@ -146,6 +146,14 @@ class _PlaylistDetailsPageState extends State<PlaylistDetailsPage> {
                     icon: const Icon(CupertinoIcons.back),
                     onPressed: () => context.pop(),
                   ),
+                  actions: (isFavorites || isAlbum)
+                      ? null
+                      : [
+                          IconButton(
+                            icon: const Icon(CupertinoIcons.add),
+                            onPressed: () => _showAddSongsToPlaylistSheet(context, playlist!),
+                          ),
+                        ],
                   flexibleSpace: FlexibleSpaceBar(
                     title: Text(
                       isFavorites ? 'Favorites' : (isAlbum ? albumName! : playlist!.name),
@@ -262,12 +270,47 @@ class _PlaylistDetailsPageState extends State<PlaylistDetailsPage> {
                     ),
                   ),
                 ),
-                Theme(
-                  data: Theme.of(context).copyWith(
-                    canvasColor: Colors.transparent,
-                    shadowColor: Colors.transparent,
-                  ),
-                  child: SliverReorderableList(
+                if (playlistSongs.isEmpty)
+                  SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(
+                            CupertinoIcons.music_note_list,
+                            size: 64,
+                            color: Colors.white24,
+                          ),
+                          const SizedBox(height: 16),
+                          const Text(
+                            'No songs in this playlist yet',
+                            style: TextStyle(color: Colors.white54, fontSize: 16),
+                          ),
+                          const SizedBox(height: 24),
+                          if (!isFavorites && !isAlbum && playlist != null)
+                            ElevatedButton.icon(
+                              onPressed: () => _showAddSongsToPlaylistSheet(context, playlist!),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Theme.of(context).colorScheme.primary,
+                                foregroundColor: Theme.of(context).colorScheme.onPrimary,
+                                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                              ),
+                              icon: const Icon(CupertinoIcons.add),
+                              label: const Text('Add Songs'),
+                            ),
+                        ],
+                      ),
+                    ),
+                  )
+                else
+                  Theme(
+                    data: Theme.of(context).copyWith(
+                      canvasColor: Colors.transparent,
+                      shadowColor: Colors.transparent,
+                    ),
+                    child: SliverReorderableList(
                     itemCount: playlistSongs.length,
                     onReorder: (oldIndex, newIndex) {
                       if (!isFavorites) {
@@ -364,6 +407,172 @@ class _PlaylistDetailsPageState extends State<PlaylistDetailsPage> {
               ],
             ),
           ),
+        );
+      },
+    );
+  }
+
+  void _showAddSongsToPlaylistSheet(BuildContext context, Playlist playlist) {
+    String searchQuery = '';
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (sheetContext) {
+        return BlocBuilder<LibraryBloc, LibraryState>(
+          builder: (context, state) {
+            final latestPlaylist = state.playlists.firstWhere(
+              (p) => p.id == playlist.id,
+              orElse: () => playlist,
+            );
+            final allSongs = state.songs;
+
+            return DraggableScrollableSheet(
+              initialChildSize: 0.85,
+              minChildSize: 0.5,
+              maxChildSize: 0.95,
+              expand: false,
+              builder: (_, scrollController) {
+                return StatefulBuilder(
+                  builder: (context, setSheetState) {
+                    final filteredSongs = allSongs.where((song) {
+                      final titleMatch = song.title.toLowerCase().contains(searchQuery.toLowerCase());
+                      final artistMatch = song.artist.toLowerCase().contains(searchQuery.toLowerCase());
+                      return titleMatch || artistMatch;
+                    }).toList();
+
+                    return Container(
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.surface,
+                        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                      ),
+                      child: Column(
+                        children: [
+                          const SizedBox(height: 12),
+                          Container(
+                            width: 40,
+                            height: 4,
+                            decoration: BoxDecoration(
+                              color: Colors.grey.withValues(alpha: 0.3),
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    'Add to ${latestPlaylist.name}',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                                Text(
+                                  '${latestPlaylist.songIds.length} selected',
+                                  style: TextStyle(
+                                    color: Theme.of(context).colorScheme.primary,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            child: CupertinoSearchTextField(
+                              placeholder: 'Search songs or artists...',
+                              style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+                              onChanged: (value) {
+                                setSheetState(() {
+                                  searchQuery = value;
+                                });
+                              },
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Expanded(
+                            child: filteredSongs.isEmpty
+                                ? const Center(
+                                    child: Text(
+                                      'No songs found',
+                                      style: TextStyle(color: Colors.grey),
+                                    ),
+                                  )
+                                : ListView.builder(
+                                    controller: scrollController,
+                                    itemCount: filteredSongs.length,
+                                    itemBuilder: (context, index) {
+                                      final song = filteredSongs[index];
+                                      final isSelected = latestPlaylist.songIds.contains(song.id);
+
+                                      return ListTile(
+                                        contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
+                                        leading: ClipRRect(
+                                          borderRadius: BorderRadius.circular(6),
+                                          child: Container(
+                                            width: 40,
+                                            height: 40,
+                                            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                                            child: song.artworkPath != null
+                                                ? Image.file(File(song.artworkPath!), fit: BoxFit.cover)
+                                                : const Icon(CupertinoIcons.music_note, color: Colors.grey),
+                                          ),
+                                        ),
+                                        title: Text(
+                                          song.title,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(fontWeight: FontWeight.w600),
+                                        ),
+                                        subtitle: Text(
+                                          song.artist,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: TextStyle(
+                                            color: Theme.of(context).textTheme.bodySmall?.color,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                        trailing: Icon(
+                                          isSelected
+                                              ? CupertinoIcons.checkmark_circle_fill
+                                              : CupertinoIcons.circle,
+                                          color: isSelected
+                                              ? Theme.of(context).colorScheme.primary
+                                              : Colors.white30,
+                                        ),
+                                        onTap: () {
+                                          if (isSelected) {
+                                            context.read<LibraryBloc>().add(
+                                                  RemoveSongFromPlaylist(latestPlaylist, song),
+                                                );
+                                          } else {
+                                            context.read<LibraryBloc>().add(
+                                                  AddSongToPlaylist(latestPlaylist, song),
+                                                );
+                                          }
+                                        },
+                                      );
+                                    },
+                                  ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                );
+              },
+            );
+          },
         );
       },
     );

@@ -156,14 +156,14 @@ class AudioPlayerService {
   Future<void> cycleRepeatMode() async {
     switch (_player.loopMode) {
       case LoopMode.off:
-        await _player.setLoopMode(LoopMode.all);
-        break;
-
-      case LoopMode.all:
         await _player.setLoopMode(LoopMode.one);
         break;
 
       case LoopMode.one:
+        await _player.setLoopMode(LoopMode.all);
+        break;
+
+      case LoopMode.all:
         await _player.setLoopMode(LoopMode.off);
         break;
     }

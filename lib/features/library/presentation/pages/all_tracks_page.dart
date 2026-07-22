@@ -10,9 +10,10 @@ import 'package:liser/features/player/presentation/bloc/player_bloc.dart';
 import 'package:liser/app/theme/app_colors.dart';
 import 'package:liser/app/widgets/frosted_background.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 import 'package:liser/app/di/service_locator.dart';
-import 'package:liser/core/storage/database/hive_service.dart';
+import 'package:liser/features/library/data/repositories/library_repository.dart';
+
+import 'package:liser/core/utils/app_toast.dart';
 
 class AllTracksPage extends StatefulWidget {
   final String? artistFilter;
@@ -44,10 +45,10 @@ class _AllTracksPageState extends State<AllTracksPage> {
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (sheetContext) {
-        return ValueListenableBuilder<Box<Playlist>>(
-          valueListenable: sl<HiveService>().playlistsBox.listenable(),
-          builder: (context, box, _) {
-            final playlists = box.values.toList();
+        return StreamBuilder<List<Playlist>>(
+          stream: sl<LibraryRepository>().watchPlaylists(),
+          builder: (context, snapshot) {
+            final playlists = snapshot.data ?? [];
             return DraggableScrollableSheet(
               initialChildSize: 0.5,
               minChildSize: 0.3,
@@ -100,31 +101,43 @@ class _AllTracksPageState extends State<AllTracksPage> {
                                   height: 48,
                                   decoration: BoxDecoration(
                                     color: isAlreadyAdded 
-                                      ? Colors.grey.withValues(alpha: 0.1) 
-                                      : Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                                      ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.2) 
+                                      : Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: Icon(
                                     isAlreadyAdded ? CupertinoIcons.checkmark_alt : CupertinoIcons.music_note_list,
-                                    color: isAlreadyAdded ? Colors.grey : Theme.of(context).colorScheme.primary,
+                                    color: isAlreadyAdded ? Theme.of(context).colorScheme.primary : Colors.grey,
                                   ),
                                 ),
                                 title: Text(
                                   playlist.name,
-                                  style: TextStyle(
-                                    color: isAlreadyAdded ? Colors.grey : null,
-                                  ),
+                                  style: const TextStyle(fontWeight: FontWeight.w600),
                                 ),
                                 subtitle: Text(
                                   '${playlist.songIds.length} songs',
                                   style: TextStyle(
-                                    color: isAlreadyAdded ? Colors.grey : null,
+                                    color: Theme.of(context).textTheme.bodySmall?.color,
                                   ),
                                 ),
-                                onTap: isAlreadyAdded ? null : () {
-                                  context.read<LibraryBloc>().add(
-                                        AddSongToPlaylist(playlist, song),
-                                      );
+                                trailing: Icon(
+                                  isAlreadyAdded 
+                                      ? CupertinoIcons.checkmark_circle_fill 
+                                      : CupertinoIcons.circle,
+                                  color: isAlreadyAdded 
+                                      ? Theme.of(context).colorScheme.primary 
+                                      : Colors.white30,
+                                ),
+                                onTap: () {
+                                  if (isAlreadyAdded) {
+                                    context.read<LibraryBloc>().add(
+                                          RemoveSongFromPlaylist(playlist, song),
+                                        );
+                                  } else {
+                                    context.read<LibraryBloc>().add(
+                                          AddSongToPlaylist(playlist, song),
+                                        );
+                                  }
                                 },
                               );
                             },
@@ -251,14 +264,7 @@ class _AllTracksPageState extends State<AllTracksPage> {
                                         SlidableAction(
                                           onPressed: (context) {
                                             context.read<PlayerBloc>().add(AddSongToEnd(song));
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              SnackBar(
-                                                content: Text('${song.title} added to queue', style: const TextStyle(fontWeight: FontWeight.w500)),
-                                                duration: const Duration(seconds: 2),
-                                                behavior: SnackBarBehavior.floating,
-                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                              ),
-                                            );
+                                            AppToast.show(context, '${song.title} added to queue');
                                           },
                                           backgroundColor: AppColors.primary,
                                           foregroundColor: Colors.white,
