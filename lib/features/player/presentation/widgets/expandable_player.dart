@@ -30,7 +30,7 @@ class ExpandablePlayer extends StatefulWidget {
   State<ExpandablePlayer> createState() => _ExpandablePlayerState();
 }
 
-class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProviderStateMixin {
+class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProviderStateMixin, WidgetsBindingObserver {
   late AnimationController _controller;
   late Animation<double> _miniPlayerOpacityAnimation;
   
@@ -52,13 +52,32 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
       vsync: this,
       duration: const Duration(milliseconds: 300),
     );
+    WidgetsBinding.instance.addObserver(this);
   }
+
+
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _controller.dispose();
     _queueController.dispose();
     super.dispose();
+  }
+
+  @override
+  Future<bool> didPopRoute() async {
+    if (_controller.value > 0.0) {
+      _controller.animateTo(0.0, curve: Curves.easeOutCubic, duration: const Duration(milliseconds: 200));
+      if (_isQueueMode) {
+        setState(() {
+          _isQueueMode = false;
+          _queueController.reverse();
+        });
+      }
+      return true;
+    }
+    return false;
   }
 
   void _handleDragUpdate(DragUpdateDetails details) {
@@ -125,11 +144,6 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
 
-        if (context.canPop()) {
-          context.pop();
-          return;
-        }
-
         if (_controller.value > 0.0) {
           _controller.animateTo(0.0, curve: Curves.easeOutCubic, duration: const Duration(milliseconds: 200));
           if (_isQueueMode) {
@@ -138,6 +152,11 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
               _queueController.reverse();
             });
           }
+          return;
+        }
+
+        if (context.canPop()) {
+          context.pop();
           return;
         }
 
@@ -479,6 +498,7 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
                         icon: const Icon(CupertinoIcons.shuffle),
                         color: state.shuffleEnabled ? AppColors.primary : Theme.of(context).textTheme.bodySmall?.color,
                         onPressed: () {
+                        HapticFeedback.lightImpact();
                           context.read<PlayerBloc>().add(ToggleShuffle());
                         },
                       ),
@@ -505,6 +525,7 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
                             ? AppColors.primary
                             : Theme.of(context).textTheme.bodySmall?.color,
                         onPressed: () {
+                        HapticFeedback.lightImpact();
                           context.read<PlayerBloc>().add(const ToggleRepeatMode());
                         },
                       ),
@@ -514,6 +535,7 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
                     icon: const Icon(CupertinoIcons.list_bullet),
                     color: _isQueueMode ? AppColors.primary : Theme.of(context).textTheme.bodySmall?.color,
                     onPressed: () {
+                        HapticFeedback.lightImpact();
                       setState(() {
                         _isQueueMode = !_isQueueMode;
                         if (_isQueueMode) {
@@ -619,6 +641,7 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
                     icon: Icon(song.favorite ? CupertinoIcons.heart_fill : CupertinoIcons.heart),
                     color: song.favorite ? AppColors.primary : null,
                     onPressed: () {
+                        HapticFeedback.lightImpact();
                       context.read<PlayerBloc>().add(ToggleFavorite(song));
                     },
                   ),
@@ -687,156 +710,16 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
 
   Widget _buildQueueUI(BuildContext context, PlayerUiState state, dynamic song) {
     final queue = _optimisticQueue ?? state.queue;
-    return Column(
-      key: const ValueKey('queue_ui'),
-      children: [
-        SizedBox(
-          height: 60,
-          child: Row(
-            children: [
-              const SizedBox(width: 84), // Space for morphing artwork (60) + padding (24)
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      song?.title ?? '',
-                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    Text(
-                      song?.artist ?? '',
-                      style: TextStyle(fontSize: 14, color: Colors.grey),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        
-        const SizedBox(height: 8),
-        
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text(
-              'Playing Next',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            TextButton(
-              onPressed: () => context.read<PlayerBloc>().add(const ClearQueue()),
-              child: Text('Clear Queue', style: TextStyle(color: AppColors.primary)),
-            ),
-          ],
-        ),
-        
-        Expanded(
-          child: queue.length <= state.currentIndex + 1 
-          ? const Center(
-              child: Text(
-                'No upcoming songs', 
-                style: TextStyle(color: Colors.grey, fontSize: 16)
-              )
-            )
-          : ShaderMask(
-              shaderCallback: (Rect bounds) {
-                return const LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [Colors.transparent, Colors.white, Colors.white, Colors.transparent],
-                  stops: [0.0, 0.05, 0.90, 1.0],
-                ).createShader(bounds);
-              },
-              blendMode: BlendMode.dstIn,
-              child: ReorderableListView.builder(
-                padding: const EdgeInsets.only(top: 16, bottom: 24),
-                itemCount: queue.length - state.currentIndex - 1,
-              onReorder: (oldIndex, newIndex) {
-                setState(() {
-                  if (oldIndex < newIndex) {
-                    newIndex -= 1;
-                  }
-                  final baseIndex = state.currentIndex + 1;
-                  _optimisticQueue = List.from(state.queue);
-                  final item = _optimisticQueue!.removeAt(baseIndex + oldIndex);
-                  _optimisticQueue!.insert(baseIndex + newIndex, item);
-                });
-                final baseIndex = state.currentIndex + 1;
-                context.read<PlayerBloc>().add(ReorderQueue(baseIndex + oldIndex, baseIndex + newIndex));
-              },
-              itemBuilder: (context, index) {
-                final songIndex = state.currentIndex + 1 + index;
-                final qSong = queue[songIndex];
-                
-                return InkWell(
-                  key: ValueKey(qSong.id),
-                  onTap: () {
-                    // Play this song? The queue logic usually just jumps to it or plays it.
-                    // Let's just play it from the queue context if they tap it.
-                    context.read<PlayerBloc>().add(PlaySong(song: qSong, queue: queue));
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                    child: Row(
-                      children: [
-                        ReorderableDragStartListener(
-                          index: index,
-                          child: const Padding(
-                            padding: EdgeInsets.only(right: 12.0),
-                            child: Icon(CupertinoIcons.bars, color: Colors.white38),
-                          ),
-                        ),
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(6),
-                          child: Container(
-                            width: 48,
-                            height: 48,
-                            color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                            child: qSong.artworkPath != null
-                                ? Image.file(
-                                    File(qSong.artworkPath!),
-                                    fit: BoxFit.cover,
-                                  )
-                                : const Icon(CupertinoIcons.music_note, color: Colors.grey),
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                qSong.title,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                qSong.artist,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  color: Theme.of(context).textTheme.bodySmall?.color,
-                                  fontSize: 13,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
-        ),)
-      ],
+    return _QueueListWidget(
+      queue: queue,
+      currentIndex: state.currentIndex,
+      song: song,
+      onClose: () {
+        setState(() {
+          _isQueueMode = false;
+          _queueController.reverse();
+        });
+      },
     );
   }
 
@@ -1038,5 +921,320 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
         );
       },
     );
+  }
+}
+
+class _QueueListWidget extends StatefulWidget {
+  final List<Song> queue;
+  final int currentIndex;
+  final dynamic song;
+  final VoidCallback onClose;
+
+  const _QueueListWidget({
+    Key? key,
+    required this.queue,
+    required this.currentIndex,
+    required this.song,
+    required this.onClose,
+  }) : super(key: key);
+
+  @override
+  State<_QueueListWidget> createState() => _QueueListWidgetState();
+}
+
+class _QueueListWidgetState extends State<_QueueListWidget> {
+  late ScrollController _scrollController;
+  bool _pastRevealed = false;
+  bool _bottomReached = false;
+  List<Song>? _optimisticQueue;
+
+  @override
+  void initState() {
+    super.initState();
+    // Calculate initial offset:
+    // Past songs: widget.currentIndex * 64.0 (assuming 64 is item height)
+    // Divider: 25.0 (if currentIndex > 0)
+    double offset = 0.0;
+    if (widget.currentIndex > 0) {
+      offset = (widget.currentIndex * 64.0) + 25.0;
+    }
+    _scrollController = ScrollController(initialScrollOffset: offset);
+  }
+
+  @override
+  void didUpdateWidget(_QueueListWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.currentIndex != widget.currentIndex) {
+      double targetOffset = 0.0;
+      if (widget.currentIndex > 0) {
+        targetOffset = (widget.currentIndex * 64.0) + 25.0;
+      }
+      
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          targetOffset,
+          duration: const Duration(milliseconds: 500),
+          curve: Curves.easeInOutCubic,
+        );
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final queue = _optimisticQueue ?? widget.queue;
+    
+    return Column(
+      key: const ValueKey('queue_ui'),
+      children: [
+        SizedBox(
+          height: 60,
+          child: Row(
+            children: [
+              const SizedBox(width: 84),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      widget.song?.title ?? '',
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      widget.song?.artist ?? '',
+                      style: const TextStyle(fontSize: 14, color: Colors.grey),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        
+        const SizedBox(height: 8),
+        
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'Playing Next',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            TextButton(
+              onPressed: () {
+                HapticFeedback.lightImpact();
+                context.read<PlayerBloc>().add(const ClearQueue());
+              },
+              child: Text('Clear Queue', style: TextStyle(color: Theme.of(context).colorScheme.primary)),
+            ),
+          ],
+        ),
+        
+        Expanded(
+          child: queue.length <= 1
+              ? const Center(
+                  child: Text('Empty Queue',
+                      style: TextStyle(color: Colors.grey, fontSize: 16)))
+              : ShaderMask(
+                  shaderCallback: (Rect bounds) {
+                    return const LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [Colors.transparent, Colors.white, Colors.white, Colors.transparent],
+                      stops: [0.0, 0.05, 0.90, 1.0],
+                    ).createShader(bounds);
+                  },
+                  blendMode: BlendMode.dstIn,
+                  child: NotificationListener<ScrollNotification>(
+                    onNotification: (scrollInfo) {
+                      if (scrollInfo is ScrollUpdateNotification) {
+                        if (widget.currentIndex > 0) {
+                          double threshold = (widget.currentIndex * 64.0) + 25.0 - 10.0;
+                          if (scrollInfo.metrics.pixels < threshold && !_pastRevealed) {
+                            HapticFeedback.selectionClick();
+                            _pastRevealed = true;
+                          } else if (scrollInfo.metrics.pixels > threshold + 20) {
+                            _pastRevealed = false;
+                          }
+                        }
+                        
+                        if (scrollInfo.metrics.pixels >= scrollInfo.metrics.maxScrollExtent && scrollInfo.metrics.maxScrollExtent > 0) {
+                          if (!_bottomReached) {
+                            HapticFeedback.selectionClick();
+                            _bottomReached = true;
+                          }
+                        } else if (scrollInfo.metrics.pixels < scrollInfo.metrics.maxScrollExtent - 20) {
+                          _bottomReached = false;
+                        }
+                      }
+                      return false;
+                    },
+                    child: ReorderableListView(
+                      onReorderStart: (index) => HapticFeedback.selectionClick(),
+                      onReorderEnd: (index) => HapticFeedback.lightImpact(),
+                      scrollController: _scrollController,
+                      padding: const EdgeInsets.only(top: 16, bottom: 24),
+                      buildDefaultDragHandles: false,
+                      onReorder: (oldIndex, newIndex) {
+                        // Map visual indices to actual queue indices
+                        int mapVisualToQueue(int visIndex) {
+                          if (widget.currentIndex == 0) {
+                            // No past songs, no divider
+                            return visIndex + 1; // Everything is after current song
+                          } else {
+                            if (visIndex < widget.currentIndex) return visIndex; // Past song
+                            if (visIndex == widget.currentIndex) return -1; // Divider
+                            return visIndex; // Future song (visIndex 1 is queue[1], wait...)
+                            // If C=2. Past: 0,1. Divider: 2. Future: 3,4. Queue: 0,1,2(curr),3,4
+                            // visIndex 0 -> queue 0
+                            // visIndex 1 -> queue 1
+                            // visIndex 2 -> Divider
+                            // visIndex 3 -> queue 3
+                          }
+                        }
+                        
+                        if (oldIndex < newIndex) newIndex -= 1;
+                        
+                        int realOld = mapVisualToQueue(oldIndex);
+                        int realNew = mapVisualToQueue(newIndex);
+                        
+                        if (realOld == -1 || realNew == -1) return; // Can't reorder divider
+                        
+                        setState(() {
+                          _optimisticQueue = List.from(widget.queue);
+                          final item = _optimisticQueue!.removeAt(realOld);
+                          
+                          // After removing from realOld, we need to adjust realNew if it was after realOld
+                          int adjustedNew = realNew;
+                          if (realOld < realNew) {
+                            adjustedNew -= 1;
+                          }
+                          _optimisticQueue!.insert(adjustedNew, item);
+                        });
+                        context.read<PlayerBloc>().add(ReorderQueue(realOld, realNew));
+                      },
+                      children: _buildListChildren(queue),
+                    ),
+                  ),
+                ),
+        ),
+      ],
+    );
+  }
+
+  List<Widget> _buildListChildren(List<Song> queue) {
+    List<Widget> children = [];
+    
+    for (int i = 0; i < queue.length; i++) {
+      if (i == widget.currentIndex) {
+        if (widget.currentIndex > 0) {
+          children.add(
+            Container(
+              key: const ValueKey('divider'),
+              padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 24.0),
+              child: Row(
+                children: List.generate(40, (index) {
+                  return Expanded(
+                    child: Container(
+                      color: index % 2 == 0 ? Colors.grey.withValues(alpha: 0.3) : Colors.transparent,
+                      height: 1,
+                    ),
+                  );
+                }),
+              ),
+            )
+          );
+        }
+        continue; // Skip current song
+      }
+      
+      final qSong = queue[i];
+      final isPast = i < widget.currentIndex;
+      
+      children.add(
+        InkWell(
+          key: ValueKey(qSong.id + '_$i'),
+          onTap: () {
+            HapticFeedback.lightImpact();
+            context.read<PlayerBloc>().add(PlaySong(song: qSong, queue: queue));
+          },
+          child: Opacity(
+            opacity: isPast ? 0.4 : 1.0,
+            child: SizedBox(
+              height: 64, // explicitly height to match our offset calculation
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                child: Row(
+                  children: [
+                    if (!isPast)
+                      ReorderableDragStartListener(
+                        index: children.length, // use current length as visual index
+                        child: const Padding(
+                          padding: EdgeInsets.only(right: 12.0),
+                          child: Icon(CupertinoIcons.bars, color: Colors.white38),
+                        ),
+                      )
+                    else
+                      const SizedBox(width: 36),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(6),
+                      child: Container(
+                        width: 48,
+                        height: 48,
+                        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                        child: qSong.artworkPath != null
+                            ? Image.file(
+                                File(qSong.artworkPath!),
+                                fit: BoxFit.cover,
+                              )
+                            : const Icon(CupertinoIcons.music_note, color: Colors.grey),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            qSong.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            qSong.artist,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: Theme.of(context).textTheme.bodySmall?.color,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        )
+      );
+    }
+    
+    return children;
   }
 }

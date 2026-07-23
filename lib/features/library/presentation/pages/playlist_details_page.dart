@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
@@ -311,6 +312,8 @@ class _PlaylistDetailsPageState extends State<PlaylistDetailsPage> {
                       shadowColor: Colors.transparent,
                     ),
                     child: SliverReorderableList(
+                    onReorderStart: (index) => HapticFeedback.selectionClick(),
+                    onReorderEnd: (index) => HapticFeedback.lightImpact(),
                     itemCount: playlistSongs.length,
                     onReorder: (oldIndex, newIndex) {
                       if (!isFavorites) {
