@@ -106,12 +106,18 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                     _searchQuery = value;
                   });
                 },
+                onSubmitted: (_) {
+                  FocusManager.instance.primaryFocus?.unfocus();
+                },
               ),
             ),
           ),
         ),
-        body: SafeArea(
-          child: BlocBuilder<LibraryBloc, LibraryState>(
+        body: GestureDetector(
+          onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+          behavior: HitTestBehavior.translucent,
+          child: SafeArea(
+            child: BlocBuilder<LibraryBloc, LibraryState>(
             builder: (context, state) {
               if (state.status == LibraryStatus.loading) {
                 return const Center(child: CircularProgressIndicator());
@@ -208,6 +214,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                   : state.songs.where((s) => s.title.toLowerCase().contains(_searchQuery.toLowerCase()) || s.artist.toLowerCase().contains(_searchQuery.toLowerCase())).toList();
 
               return CustomScrollView(
+                keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
                 slivers: [
                   if (_searchQuery.isNotEmpty)
                     if (filteredSongs.isEmpty)
@@ -259,6 +266,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                 subtitle: Text(song.artist, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color)),
                                 trailing: const Icon(CupertinoIcons.play_circle, color: Colors.grey),
                                 onTap: () {
+                                  FocusManager.instance.primaryFocus?.unfocus();
                                   context.read<PlayerBloc>().add(PlaySong(song: song, queue: filteredSongs));
                                 },
                               );
@@ -288,9 +296,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                 ],
               );
             },
-          ),
-        ),
-      ),
+            ), // End of SafeArea
+          ), // End of GestureDetector
+        ), // End of Scaffold
+      ), // End of FrostedBackground
     );
   }
 

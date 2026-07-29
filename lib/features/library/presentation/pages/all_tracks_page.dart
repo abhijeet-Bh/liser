@@ -23,8 +23,52 @@ class AllTracksPage extends StatefulWidget {
   State<AllTracksPage> createState() => _AllTracksPageState();
 }
 
+enum TrackSortOption { newest, mostPlayed, titleAsc, titleDesc }
+
 class _AllTracksPageState extends State<AllTracksPage> {
   String _searchQuery = '';
+  TrackSortOption _sortOption = TrackSortOption.newest;
+
+
+  void _showSortOptions(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 12),
+              Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(2))),
+              const SizedBox(height: 16),
+              const Text('Sort By', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              _buildSortOption(context, 'Newest', TrackSortOption.newest, CupertinoIcons.time),
+              _buildSortOption(context, 'Most Played', TrackSortOption.mostPlayed, CupertinoIcons.play_circle),
+              _buildSortOption(context, 'Title (A-Z)', TrackSortOption.titleAsc, CupertinoIcons.sort_down),
+              _buildSortOption(context, 'Title (Z-A)', TrackSortOption.titleDesc, CupertinoIcons.sort_up),
+              const SizedBox(height: 80),
+            ],
+          ),
+        );
+      }
+    );
+  }
+
+  Widget _buildSortOption(BuildContext context, String title, TrackSortOption option, IconData icon) {
+    final isSelected = _sortOption == option;
+    return ListTile(
+      leading: Icon(icon, color: isSelected ? Theme.of(context).colorScheme.primary : Colors.grey),
+      title: Text(title, style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
+      trailing: isSelected ? Icon(CupertinoIcons.checkmark_alt, color: Theme.of(context).colorScheme.primary) : null,
+      onTap: () {
+        setState(() => _sortOption = option);
+        Navigator.pop(context);
+      },
+    );
+  }
 
   Widget _buildFallbackIcon(BuildContext context, Song song) {
     if (song.title.isEmpty) return const Icon(CupertinoIcons.music_note, color: Colors.grey);
@@ -189,25 +233,49 @@ class _AllTracksPageState extends State<AllTracksPage> {
             preferredSize: const Size.fromHeight(60),
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-              child: CupertinoSearchTextField(
-                placeholder: 'Search songs or artists...',
-                style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
-                backgroundColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
-                itemColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                onChanged: (value) {
-                  setState(() {
-                    _searchQuery = value;
-                  });
-                },
+              child: Row(
+                children: [
+                  Expanded(
+                    child: CupertinoSearchTextField(
+                      placeholder: 'Search songs or artists...',
+                      style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+                      backgroundColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
+                      itemColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                      onChanged: (value) {
+                        setState(() {
+                          _searchQuery = value;
+                        });
+                      },
+                      onSubmitted: (_) {
+                        FocusManager.instance.primaryFocus?.unfocus();
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: IconButton(
+                      icon: const Icon(CupertinoIcons.slider_horizontal_3, size: 20),
+                      color: Theme.of(context).colorScheme.onSurface,
+                      onPressed: () => _showSortOptions(context),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
         ),
-        body: SafeArea(
-          bottom: false,
-          child: BlocBuilder<LibraryBloc, LibraryState>(
-              builder: (context, libraryState) {
+        body: GestureDetector(
+          onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+          behavior: HitTestBehavior.translucent,
+          child: SafeArea(
+            bottom: false,
+            child: BlocBuilder<LibraryBloc, LibraryState>(
+                builder: (context, libraryState) {
                 switch (libraryState.status) {
                   case LibraryStatus.initial:
                   case LibraryStatus.loading:
@@ -217,12 +285,28 @@ class _AllTracksPageState extends State<AllTracksPage> {
                     return Center(child: Text(libraryState.error ?? 'Unknown error'));
 
                   case LibraryStatus.loaded:
-                    final baseSongs = widget.artistFilter != null ? libraryState.songs.where((s) => s.artist == widget.artistFilter).toList() : libraryState.songs;
+                    final baseSongs = widget.artistFilter != null ? libraryState.songs.where((s) => s.artist == widget.artistFilter).toList() : libraryState.songs.toList();
                     final filteredSongs = _searchQuery.isEmpty 
                       ? baseSongs 
                       : baseSongs.where((s) => s.title.toLowerCase().contains(_searchQuery.toLowerCase()) || s.artist.toLowerCase().contains(_searchQuery.toLowerCase())).toList();
 
+                    switch (_sortOption) {
+                      case TrackSortOption.newest:
+                        filteredSongs.sort((a, b) => b.dateAdded.compareTo(a.dateAdded));
+                        break;
+                      case TrackSortOption.mostPlayed:
+                        filteredSongs.sort((a, b) => b.playCount.compareTo(a.playCount));
+                        break;
+                      case TrackSortOption.titleAsc:
+                        filteredSongs.sort((a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()));
+                        break;
+                      case TrackSortOption.titleDesc:
+                        filteredSongs.sort((a, b) => b.title.toLowerCase().compareTo(a.title.toLowerCase()));
+                        break;
+                    }
+
                     return CustomScrollView(
+                      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
                       slivers: [
                         if (filteredSongs.isEmpty)
                           SliverFillRemaining(
@@ -239,7 +323,7 @@ class _AllTracksPageState extends State<AllTracksPage> {
                           )
                         else
                           SliverPadding(
-                            padding: const EdgeInsets.only(top: 8, bottom: 150),
+                            padding: const EdgeInsets.only(top: 8, bottom: 220),
                             sliver: SliverList(
                               delegate: SliverChildBuilderDelegate(
                                 (context, index) {
@@ -286,13 +370,14 @@ class _AllTracksPageState extends State<AllTracksPage> {
                                         ),
                                       ],
                                     ),
-                                    child: InkWell(
-                                      onTap: () {
-                                        context.read<PlayerBloc>().add(
-                                              PlaySong(song: song, queue: filteredSongs),
-                                            );
-                                      },
-                                      child: Padding(
+                                      child: InkWell(
+                                        onTap: () {
+                                          FocusManager.instance.primaryFocus?.unfocus();
+                                          context.read<PlayerBloc>().add(
+                                                PlaySong(song: song, queue: filteredSongs),
+                                              );
+                                        },
+                                        child: Padding(
                                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                                         child: Row(
                                           children: [
@@ -424,9 +509,10 @@ class _AllTracksPageState extends State<AllTracksPage> {
                 }
                 return const SizedBox.shrink();
               },
-          ),
-        ),
-      ),
+            ), // End of SafeArea
+          ), // End of GestureDetector
+        ), // End of Scaffold
+      ), // End of FrostedBackground
     );
   }
 }
