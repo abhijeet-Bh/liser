@@ -17,6 +17,7 @@ import 'package:liser/features/library/data/repositories/library_repository.dart
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:liser/core/utils/app_toast.dart';
+import 'package:liser/core/constants/app_constants.dart';
 
 class ExpandablePlayer extends StatefulWidget {
   final Widget? bottomNavigationBar;
@@ -50,7 +51,7 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 300),
+      duration: AppDurations.normal,
     );
     _controller.addListener(() {
       widget.expandProgress?.value = _controller.value;
@@ -75,7 +76,7 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
   @override
   Future<bool> didPopRoute() async {
     if (_controller.value > 0.0) {
-      _controller.animateTo(0.0, curve: Curves.easeOutCubic, duration: const Duration(milliseconds: 200));
+      _controller.animateTo(0.0, curve: Curves.easeOutCubic, duration: AppDurations.fast);
       if (_isQueueMode) {
         setState(() {
           _isQueueMode = false;
@@ -125,9 +126,9 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
       _controller.animateWith(simulation);
     } else {
       if (_controller.value > 0.5) {
-        _controller.animateTo(1.0, curve: Curves.easeOutCubic, duration: const Duration(milliseconds: 200));
+        _controller.animateTo(1.0, curve: Curves.easeOutCubic, duration: AppDurations.fast);
       } else {
-        _controller.animateTo(0.0, curve: Curves.easeOutCubic, duration: const Duration(milliseconds: 200));
+        _controller.animateTo(0.0, curve: Curves.easeOutCubic, duration: AppDurations.fast);
       }
     }
   }
@@ -152,7 +153,7 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
         if (didPop) return;
 
         if (_controller.value > 0.0) {
-          _controller.animateTo(0.0, curve: Curves.easeOutCubic, duration: const Duration(milliseconds: 200));
+          _controller.animateTo(0.0, curve: Curves.easeOutCubic, duration: AppDurations.fast);
           if (_isQueueMode) {
             setState(() {
               _isQueueMode = false;
@@ -226,7 +227,7 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
                           onVerticalDragEnd: _handleDragEnd,
                           onTap: () {
                             if (_controller.value < 0.1) {
-                              _controller.animateTo(1.0, curve: Curves.easeOutCubic, duration: const Duration(milliseconds: 200));
+                              _controller.animateTo(1.0, curve: Curves.easeOutCubic, duration: AppDurations.fast);
                             }
                           },
                           child: ClipRRect(
@@ -424,7 +425,7 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
               
               Expanded(
                 child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 300),
+                  duration: AppDurations.normal,
                   child: _isQueueMode 
                       ? _buildQueueUI(context, state, song) 
                       : Center(
@@ -440,7 +441,7 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
               if (!_isQueueMode) const SizedBox(height: 16),
               
               AnimatedSize(
-                duration: const Duration(milliseconds: 300),
+                duration: AppDurations.normal,
                 curve: Curves.easeOutCubic,
                 child: _isQueueMode ? const SizedBox.shrink() : _buildTitleRow(context, state, song, isDark),
               ),
@@ -679,7 +680,7 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
                   ),
                   PopupMenuButton<String>(
                     icon: const Icon(CupertinoIcons.ellipsis),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    shape: RoundedRectangleBorder(borderRadius: AppRadius.circularLg),
                     color: Theme.of(context).colorScheme.surface,
                     elevation: 8,
                     onSelected: (value) {
@@ -883,7 +884,7 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
                       const SizedBox(height: 16),
                       if (playlists.isEmpty)
                         const Padding(
-                          padding: EdgeInsets.all(32.0),
+                          padding: AppPadding.allXxl,
                           child: Text('No playlists created yet.'),
                         )
                       else
@@ -904,7 +905,7 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
                                     color: isAlreadyAdded 
                                       ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.2) 
                                       : Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
-                                    borderRadius: BorderRadius.circular(8),
+                                    borderRadius: AppRadius.circularSm,
                                   ),
                                   child: Icon(
                                     isAlreadyAdded ? CupertinoIcons.checkmark_alt : CupertinoIcons.music_note_list,
@@ -1005,7 +1006,7 @@ class _QueueListWidgetState extends State<_QueueListWidget> {
       if (_scrollController.hasClients) {
         _scrollController.animateTo(
           targetOffset,
-          duration: const Duration(milliseconds: 500),
+          duration: AppDurations.slow,
           curve: Curves.easeInOutCubic,
         );
       }

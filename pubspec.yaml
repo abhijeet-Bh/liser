@@ -2,7 +2,7 @@ name: liser
 description: "A local music player."
 publish_to: "none"
 
-version: 1.3.0-beta
+version: 1.3.0
 
 environment:
   sdk: ^3.7.2

@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:liser/features/player/presentation/widgets/expandable_player.dart';
 import 'package:liser/core/widgets/floating_nav_bar.dart';
 import 'package:liser/features/player/presentation/bloc/player_bloc.dart';
+import 'package:liser/core/constants/app_constants.dart';
 
 class MainShell extends StatefulWidget {
   const MainShell({super.key, required this.navigationShell});
@@ -26,7 +27,7 @@ class _MainShellState extends State<MainShell> with SingleTickerProviderStateMix
     super.initState();
     _shrinkController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 300),
+      duration: AppDurations.normal,
     );
   }
 

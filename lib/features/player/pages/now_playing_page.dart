@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import 'package:liser/features/player/presentation/bloc/player_bloc.dart';
+import 'package:liser/core/constants/app_constants.dart';
 
 class NowPlayingPage extends StatelessWidget {
   const NowPlayingPage({super.key});
@@ -41,12 +42,12 @@ class NowPlayingPage extends StatelessWidget {
                       width: double.infinity,
                       decoration: BoxDecoration(
                         color: Colors.grey.shade300,
-                        borderRadius: BorderRadius.circular(24),
+                        borderRadius: AppRadius.circularXl,
                       ),
                       child:
                           song.artworkPath != null
                               ? ClipRRect(
-                                borderRadius: BorderRadius.circular(24),
+                                borderRadius: AppRadius.circularXl,
                                 child: Image.file(
                                   File(song.artworkPath!),
                                   fit: BoxFit.cover,

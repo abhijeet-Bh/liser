@@ -13,6 +13,7 @@ import 'package:liser/app/widgets/frosted_background.dart';
 import 'package:liser/features/profile/presentation/widgets/profile_picture_widget.dart';
 import 'package:liser/app/di/service_locator.dart';
 import 'package:liser/features/library/data/repositories/library_repository.dart';
+import 'package:liser/core/constants/app_constants.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -127,7 +128,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
                   // Hero Profile Header Card
                   Container(
-                    padding: const EdgeInsets.all(24),
+                    padding: AppPadding.allXl,
                     decoration: BoxDecoration(
                       color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.05),
                       borderRadius: BorderRadius.circular(28),
@@ -164,7 +165,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                 bottom: 2,
                                 right: 2,
                                 child: Container(
-                                  padding: const EdgeInsets.all(8),
+                                  padding: AppPadding.allSm,
                                   decoration: BoxDecoration(
                                     color: Theme.of(context).colorScheme.primary,
                                     shape: BoxShape.circle,
@@ -197,7 +198,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                 child: Container(
                                   decoration: BoxDecoration(
                                     color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.08),
-                                    borderRadius: BorderRadius.circular(16),
+                                    borderRadius: AppRadius.circularLg,
                                   ),
                                   padding: const EdgeInsets.symmetric(horizontal: 16),
                                   child: TextField(
@@ -303,7 +304,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
                       color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.05),
-                      borderRadius: BorderRadius.circular(24),
+                      borderRadius: AppRadius.circularXl,
                       border: Border.all(
                         color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.08),
                       ),

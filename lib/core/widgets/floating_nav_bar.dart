@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:liser/core/constants/app_constants.dart';
 
 class FloatingNavBar extends StatelessWidget {
   final int currentIndex;
@@ -54,7 +55,7 @@ class FloatingNavBar extends StatelessWidget {
                       // TweenAnimationBuilder doesn't need to be conditionally removed
                       TweenAnimationBuilder<double>(
                         tween: Tween<double>(end: currentIndex.toDouble()),
-                        duration: const Duration(milliseconds: 300),
+                        duration: AppDurations.normal,
                         curve: Curves.easeOutCubic,
                         builder: (context, animatedIndex, child) {
                           return Positioned(

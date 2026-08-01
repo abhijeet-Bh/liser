@@ -13,6 +13,7 @@ import 'package:liser/features/library/data/models/playlist.dart';
 import 'package:liser/features/library/data/models/song.dart';
 import 'package:liser/features/library/presentation/bloc/library_bloc.dart';
 import 'package:liser/features/player/presentation/bloc/player_bloc.dart';
+import 'package:liser/core/constants/app_constants.dart';
 
 class PlaylistDetailsPage extends StatefulWidget {
   final String playlistId;
@@ -189,7 +190,7 @@ class _PlaylistDetailsPageState extends State<PlaylistDetailsPage> {
                               bottom: 16,
                               right: 16,
                               child: Container(
-                                padding: const EdgeInsets.all(8),
+                                padding: AppPadding.allSm,
                                 decoration: BoxDecoration(
                                   color: Colors.black.withValues(alpha: 0.5),
                                   shape: BoxShape.circle,
@@ -224,7 +225,7 @@ class _PlaylistDetailsPageState extends State<PlaylistDetailsPage> {
                                 backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
                                 foregroundColor: Colors.white,
                                 shape: const CircleBorder(),
-                                padding: const EdgeInsets.all(16),
+                                padding: AppPadding.allLg,
                                 elevation: 0,
                               ),
                               child: const Icon(CupertinoIcons.shuffle, size: 24),
@@ -258,7 +259,7 @@ class _PlaylistDetailsPageState extends State<PlaylistDetailsPage> {
                                       : Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
                                   foregroundColor: _isEditing ? Colors.white : Colors.white38,
                                   shape: const CircleBorder(),
-                                  padding: const EdgeInsets.all(16),
+                                  padding: AppPadding.allLg,
                                   elevation: 0,
                                 ),
                                 child: Icon(
@@ -537,7 +538,7 @@ class _PlaylistDetailsPageState extends State<PlaylistDetailsPage> {
                                             child: Material(
                                               color: Colors.transparent,
                                               child: InkWell(
-                                                borderRadius: BorderRadius.circular(16),
+                                                borderRadius: AppRadius.circularLg,
                                                 onTap: () {
                                                   if (isSelected) {
                                                     context.read<LibraryBloc>().add(RemoveSongFromPlaylist(latestPlaylist, song));
@@ -546,11 +547,11 @@ class _PlaylistDetailsPageState extends State<PlaylistDetailsPage> {
                                                   }
                                                 },
                                                 child: AnimatedContainer(
-                                                  duration: const Duration(milliseconds: 200),
-                                                  padding: const EdgeInsets.all(12),
+                                                  duration: AppDurations.fast,
+                                                  padding: AppPadding.allMd,
                                                   decoration: BoxDecoration(
                                                     color: isSelected ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.15) : Theme.of(context).colorScheme.surface.withValues(alpha: 0.4),
-                                                    borderRadius: BorderRadius.circular(16),
+                                                    borderRadius: AppRadius.circularLg,
                                                     border: Border.all(
                                                       color: isSelected ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.3) : Colors.transparent,
                                                     ),
@@ -558,7 +559,7 @@ class _PlaylistDetailsPageState extends State<PlaylistDetailsPage> {
                                                   child: Row(
                                                     children: [
                                                       ClipRRect(
-                                                        borderRadius: BorderRadius.circular(12),
+                                                        borderRadius: AppRadius.circularMd,
                                                         child: Container(
                                                           width: 52,
                                                           height: 52,

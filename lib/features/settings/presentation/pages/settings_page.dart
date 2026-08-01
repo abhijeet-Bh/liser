@@ -11,6 +11,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:liser/core/widgets/warning_dialog.dart';
 import 'package:liser/core/constants/layout_constants.dart';
+import 'package:liser/core/constants/app_constants.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
@@ -31,7 +32,7 @@ class SettingsPage extends StatelessWidget {
               child: Card(
                 color: Colors.black87,
                 child: Padding(
-                  padding: EdgeInsets.all(24.0),
+                  padding: AppPadding.allXl,
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -66,10 +67,10 @@ class SettingsPage extends StatelessWidget {
               ListTile(
                 contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
                 leading: Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: AppPadding.allMd,
                   decoration: BoxDecoration(
                     color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: AppRadius.circularMd,
                   ),
                   child: Icon(CupertinoIcons.folder_badge_plus, color: Theme.of(context).colorScheme.primary),
                 ),
@@ -95,10 +96,10 @@ class SettingsPage extends StatelessWidget {
                 ListTile(
                   contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
                   leading: Container(
-                    padding: const EdgeInsets.all(12),
+                    padding: AppPadding.allMd,
                     decoration: BoxDecoration(
                       color: const Color(0xFF10B981).withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: AppRadius.circularMd,
                     ),
                     child: const Icon(CupertinoIcons.arrow_2_circlepath, color: Color(0xFF10B981)),
                   ),
@@ -143,10 +144,10 @@ class SettingsPage extends StatelessWidget {
               ListTile(
                 contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
                 leading: Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: AppPadding.allMd,
                   decoration: BoxDecoration(
                     color: Colors.redAccent.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: AppRadius.circularMd,
                   ),
                   child: const Icon(CupertinoIcons.trash, color: Colors.redAccent),
                 ),
@@ -162,10 +163,10 @@ class SettingsPage extends StatelessWidget {
               ListTile(
                 contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
                 leading: Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: AppPadding.allMd,
                   decoration: BoxDecoration(
                     color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: AppRadius.circularMd,
                   ),
                   child: Icon(CupertinoIcons.share_up, color: Theme.of(context).colorScheme.primary),
                 ),
@@ -208,10 +209,10 @@ class SettingsPage extends StatelessWidget {
                   return ListTile(
                     contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
                     leading: Container(
-                      padding: const EdgeInsets.all(12),
+                      padding: AppPadding.allMd,
                       decoration: BoxDecoration(
                         color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: AppRadius.circularMd,
                       ),
                       child: Icon(CupertinoIcons.moon_stars, color: Theme.of(context).colorScheme.primary),
                     ),
@@ -362,15 +363,15 @@ class SettingsPage extends StatelessWidget {
       context: context,
       barrierDismissible: true,
       barrierLabel: 'Dismiss',
-      transitionDuration: const Duration(milliseconds: 300),
+      transitionDuration: AppDurations.normal,
       pageBuilder: (context, animation, secondaryAnimation) {
         return Center(
           child: Container(
             margin: const EdgeInsets.symmetric(horizontal: 32),
-            padding: const EdgeInsets.all(24),
+            padding: AppPadding.allXl,
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.surface,
-              borderRadius: BorderRadius.circular(24),
+              borderRadius: AppRadius.circularXl,
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.3),
@@ -409,7 +410,7 @@ class SettingsPage extends StatelessWidget {
                           onPressed: () => Navigator.pop(context),
                           style: TextButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            shape: RoundedRectangleBorder(borderRadius: AppRadius.circularMd),
                           ),
                           child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
                         ),
@@ -425,7 +426,7 @@ class SettingsPage extends StatelessWidget {
                             backgroundColor: Colors.redAccent,
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            shape: RoundedRectangleBorder(borderRadius: AppRadius.circularMd),
                             elevation: 0,
                           ),
                           child: const Text('Delete All', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),

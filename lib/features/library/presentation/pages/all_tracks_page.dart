@@ -15,6 +15,7 @@ import 'package:liser/features/library/data/repositories/library_repository.dart
 import 'package:liser/core/constants/layout_constants.dart';
 
 import 'package:liser/core/utils/app_toast.dart';
+import 'package:liser/core/constants/app_constants.dart';
 
 class AllTracksPage extends StatefulWidget {
   final String? artistFilter;
@@ -101,13 +102,13 @@ class _AllTracksPageState extends State<AllTracksPage> {
           setState(() => _sortOption = option);
           Navigator.pop(context);
         },
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: AppRadius.circularLg,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
+          duration: AppDurations.fast,
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
           decoration: BoxDecoration(
             color: isSelected ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.15) : Theme.of(context).colorScheme.surface.withValues(alpha: 0.5),
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: AppRadius.circularLg,
             border: Border.all(
               color: isSelected ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.3) : Colors.transparent,
               width: 1,
@@ -116,7 +117,7 @@ class _AllTracksPageState extends State<AllTracksPage> {
           child: Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: AppPadding.allSm,
                 decoration: BoxDecoration(
                   color: isSelected ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.2) : Colors.transparent,
                   shape: BoxShape.circle,
@@ -209,7 +210,7 @@ class _AllTracksPageState extends State<AllTracksPage> {
                           const SizedBox(height: 24),
                       if (playlists.isEmpty)
                         const Padding(
-                          padding: EdgeInsets.all(32.0),
+                          padding: AppPadding.allXxl,
                           child: Text('No playlists created yet.'),
                         )
                       else
@@ -226,7 +227,7 @@ class _AllTracksPageState extends State<AllTracksPage> {
                                 child: Material(
                                   color: Colors.transparent,
                                   child: InkWell(
-                                    borderRadius: BorderRadius.circular(16),
+                                    borderRadius: AppRadius.circularLg,
                                     onTap: () {
                                       if (isAlreadyAdded) {
                                         context.read<LibraryBloc>().add(RemoveSongFromPlaylist(playlist, song));
@@ -235,11 +236,11 @@ class _AllTracksPageState extends State<AllTracksPage> {
                                       }
                                     },
                                     child: AnimatedContainer(
-                                      duration: const Duration(milliseconds: 200),
-                                      padding: const EdgeInsets.all(12),
+                                      duration: AppDurations.fast,
+                                      padding: AppPadding.allMd,
                                       decoration: BoxDecoration(
                                         color: isAlreadyAdded ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.15) : Theme.of(context).colorScheme.surface.withValues(alpha: 0.6),
-                                        borderRadius: BorderRadius.circular(16),
+                                        borderRadius: AppRadius.circularLg,
                                         border: Border.all(
                                           color: isAlreadyAdded ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.3) : Colors.transparent,
                                         ),
@@ -251,7 +252,7 @@ class _AllTracksPageState extends State<AllTracksPage> {
                                             height: 52,
                                             decoration: BoxDecoration(
                                               color: isAlreadyAdded ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.2) : Theme.of(context).colorScheme.surface.withValues(alpha: 0.8),
-                                              borderRadius: BorderRadius.circular(12),
+                                              borderRadius: AppRadius.circularMd,
                                               boxShadow: [
                                                 BoxShadow(
                                                   color: Colors.black.withValues(alpha: 0.05),
@@ -382,7 +383,7 @@ class _AllTracksPageState extends State<AllTracksPage> {
                   Container(
                     decoration: BoxDecoration(
                       color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(8),
+                      borderRadius: AppRadius.circularSm,
                     ),
                     child: IconButton(
                       icon: const Icon(CupertinoIcons.slider_horizontal_3, size: 20),
@@ -575,7 +576,7 @@ class _AllTracksPageState extends State<AllTracksPage> {
                                             ),
                                             PopupMenuButton<String>(
                                               icon: Icon(CupertinoIcons.ellipsis, color: Theme.of(context).textTheme.bodySmall?.color, size: 20),
-                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                              shape: RoundedRectangleBorder(borderRadius: AppRadius.circularLg),
                                               color: Theme.of(context).colorScheme.surface,
                                               elevation: 8,
                                               onSelected: (value) {

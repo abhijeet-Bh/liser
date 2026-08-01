@@ -16,6 +16,7 @@ import 'package:liser/features/profile/presentation/widgets/profile_picture_widg
 
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:liser/core/constants/layout_constants.dart';
+import 'package:liser/core/constants/app_constants.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -247,7 +248,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                               return ListTile(
                                 contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
                                 leading: ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
+                                  borderRadius: AppRadius.circularSm,
                                   child: Container(
                                     width: 48,
                                     height: 48,
@@ -333,7 +334,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                 children: [
                   Expanded(
                     child: ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: AppRadius.circularMd,
                       child: Container(
                         width: double.infinity,
                         color: Theme.of(context).colorScheme.surfaceContainerHighest,
@@ -346,7 +347,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                             ),
                             Center(
                               child: Container(
-                                padding: const EdgeInsets.all(12),
+                                padding: AppPadding.allMd,
                                 decoration: BoxDecoration(
                                   color: Colors.black.withValues(alpha: 0.5),
                                   shape: BoxShape.circle,
@@ -461,7 +462,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                     width: 140,
                     height: 140,
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: AppRadius.circularLg,
                       color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
                       boxShadow: [
                         BoxShadow(

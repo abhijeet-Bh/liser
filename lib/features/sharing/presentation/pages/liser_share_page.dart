@@ -11,6 +11,7 @@ import 'package:liser/features/sharing/data/services/sharing_service.dart';
 import 'package:liser/features/sharing/presentation/bloc/sharing_bloc.dart';
 import 'package:liser/features/sharing/presentation/pages/radar_scan_page.dart';
 import 'package:liser/features/sharing/presentation/pages/sharing_settings_sheet.dart';
+import 'package:liser/core/constants/app_constants.dart';
 
 class LiserSharePage extends StatefulWidget {
   const LiserSharePage({super.key});
@@ -158,7 +159,7 @@ class _LiserSharePageState extends State<LiserSharePage> with SingleTickerProvid
                                     color: isSelected 
                                         ? Theme.of(context).colorScheme.primary 
                                         : Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-                                    borderRadius: BorderRadius.circular(8),
+                                    borderRadius: AppRadius.circularSm,
                                   ),
                                   child: Icon(
                                     isSelected ? CupertinoIcons.checkmark_alt : CupertinoIcons.music_note, 
@@ -183,7 +184,7 @@ class _LiserSharePageState extends State<LiserSharePage> with SingleTickerProvid
                       ),
                       if (selectedSongs.isNotEmpty)
                         Padding(
-                          padding: const EdgeInsets.all(16.0),
+                          padding: AppPadding.allLg,
                           child: SizedBox(
                             width: double.infinity,
                             height: 50,
@@ -200,7 +201,7 @@ class _LiserSharePageState extends State<LiserSharePage> with SingleTickerProvid
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Theme.of(context).colorScheme.primary,
                                 foregroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                shape: RoundedRectangleBorder(borderRadius: AppRadius.circularLg),
                                 elevation: 0,
                               ),
                               child: Text(
@@ -238,7 +239,7 @@ class _LiserSharePageState extends State<LiserSharePage> with SingleTickerProvid
         return StatefulBuilder(
           builder: (context, setStateDialog) {
             return AlertDialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+              shape: RoundedRectangleBorder(borderRadius: AppRadius.circularXl),
               title: Row(
                 children: [
                   const Icon(CupertinoIcons.square_arrow_down_fill, color: Color(0xFF10B981)),
@@ -267,10 +268,10 @@ class _LiserSharePageState extends State<LiserSharePage> with SingleTickerProvid
                   const SizedBox(height: 16),
                   Container(
                     width: double.infinity,
-                    padding: const EdgeInsets.all(12),
+                    padding: AppPadding.allMd,
                     decoration: BoxDecoration(
                       color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: AppRadius.circularLg,
                     ),
                     child: Row(
                       children: [
@@ -348,7 +349,7 @@ class _LiserSharePageState extends State<LiserSharePage> with SingleTickerProvid
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF10B981),
                     foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(borderRadius: AppRadius.circularMd),
                   ),
                   child: const Text('Accept', style: TextStyle(fontWeight: FontWeight.bold)),
                 ),
@@ -451,7 +452,7 @@ class _LiserSharePageState extends State<LiserSharePage> with SingleTickerProvid
                       
                       // Device Status info card
                       Container(
-                        padding: const EdgeInsets.all(16),
+                        padding: AppPadding.allLg,
                         decoration: BoxDecoration(
                           color: isDark ? const Color(0xFF141417).withValues(alpha: 0.6) : Colors.white.withValues(alpha: 0.8),
                           borderRadius: BorderRadius.circular(20),
@@ -556,7 +557,7 @@ class _LiserSharePageState extends State<LiserSharePage> with SingleTickerProvid
   Widget _buildHostingView(BuildContext context, String alias, String visibility) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32.0),
+        padding: AppPadding.allXxl,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -617,7 +618,7 @@ class _LiserSharePageState extends State<LiserSharePage> with SingleTickerProvid
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                     decoration: BoxDecoration(
                       color: Colors.white10,
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: AppRadius.circularMd,
                     ),
                     child: Text(
                       'Local IP Address: ${snapshot.data}',
@@ -637,7 +638,7 @@ class _LiserSharePageState extends State<LiserSharePage> with SingleTickerProvid
               style: OutlinedButton.styleFrom(
                 side: const BorderSide(color: Colors.redAccent),
                 padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                shape: RoundedRectangleBorder(borderRadius: AppRadius.circularLg),
               ),
               child: const Text('Cancel', style: TextStyle(color: Colors.redAccent, fontWeight: FontWeight.bold, fontSize: 16)),
             ),
@@ -652,7 +653,7 @@ class _LiserSharePageState extends State<LiserSharePage> with SingleTickerProvid
 
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32.0),
+        padding: AppPadding.allXxl,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -697,12 +698,12 @@ class _LiserSharePageState extends State<LiserSharePage> with SingleTickerProvid
     final theme = Theme.of(context);
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32.0),
+        padding: AppPadding.allXxl,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              padding: const EdgeInsets.all(24),
+              padding: AppPadding.allXl,
               decoration: const BoxDecoration(
                 color: Color(0xFF10B981),
                 shape: BoxShape.circle,
@@ -726,7 +727,7 @@ class _LiserSharePageState extends State<LiserSharePage> with SingleTickerProvid
                 backgroundColor: theme.colorScheme.primary,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                shape: RoundedRectangleBorder(borderRadius: AppRadius.circularLg),
                 elevation: 0,
               ),
               child: const Text('Okay', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),

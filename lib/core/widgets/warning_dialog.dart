@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:liser/core/constants/app_constants.dart';
 
 void showWarningDialog({
   required BuildContext context,
@@ -13,15 +14,15 @@ void showWarningDialog({
     context: context,
     barrierDismissible: true,
     barrierLabel: 'Dismiss',
-    transitionDuration: const Duration(milliseconds: 300),
+    transitionDuration: AppDurations.normal,
     pageBuilder: (context, animation, secondaryAnimation) {
       return Center(
         child: Container(
           margin: const EdgeInsets.symmetric(horizontal: 32),
-          padding: const EdgeInsets.all(24),
+          padding: AppPadding.allXl,
           decoration: BoxDecoration(
             color: Theme.of(context).colorScheme.surface,
-            borderRadius: BorderRadius.circular(24),
+            borderRadius: AppRadius.circularXl,
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.3),
@@ -77,7 +78,7 @@ void showWarningDialog({
                         style: TextButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: AppRadius.circularMd,
                           ),
                         ),
                         child: Text(
@@ -102,7 +103,7 @@ void showWarningDialog({
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: AppRadius.circularMd,
                           ),
                           elevation: 0,
                         ),
