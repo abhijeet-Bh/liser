@@ -96,6 +96,10 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
                           'assets/icons/liser-logo.svg',
                           width: 200,
                           height: 200,
+                          colorFilter: const ColorFilter.mode(
+                            Colors.black,
+                            BlendMode.srcIn,
+                          ),
                         ),
                       ),
                       Align(

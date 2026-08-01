@@ -12,6 +12,7 @@ import 'package:liser/app/widgets/frosted_background.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:liser/app/di/service_locator.dart';
 import 'package:liser/features/library/data/repositories/library_repository.dart';
+import 'package:liser/core/constants/layout_constants.dart';
 
 import 'package:liser/core/utils/app_toast.dart';
 
@@ -448,7 +449,7 @@ class _AllTracksPageState extends State<AllTracksPage> {
                           )
                         else
                           SliverPadding(
-                            padding: const EdgeInsets.only(top: 8, bottom: 220),
+                            padding: LayoutConstants.standardListPadding,
                             sliver: SliverList(
                               delegate: SliverChildBuilderDelegate(
                                 (context, index) {

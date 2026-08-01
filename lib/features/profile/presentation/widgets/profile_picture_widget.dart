@@ -75,6 +75,7 @@ class _ProfilePictureWidgetState extends State<ProfilePictureWidget> {
                 fit: BoxFit.cover,
                 width: widget.size,
                 height: widget.size,
+                gaplessPlayback: true,
               ),
             );
           }

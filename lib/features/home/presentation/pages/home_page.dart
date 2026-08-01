@@ -15,6 +15,7 @@ import 'package:liser/core/services/artist_image_service.dart';
 import 'package:liser/features/profile/presentation/widgets/profile_picture_widget.dart';
 
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:liser/core/constants/layout_constants.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -24,6 +25,8 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
+  static final GlobalKey _profilePicKey = GlobalKey();
+  
   int _lastUpdateCount = -1;
   List<Song> _suggestedSongs = [];
   List<Map<String, dynamic>> _mixes = [];
@@ -82,7 +85,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                   onTap: () => context.push('/profile'),
                   child: Padding(
                     padding: const EdgeInsets.only(right: 24),
-                    child: ProfilePictureWidget(photoPath: photoPath, size: 40),
+                    child: ProfilePictureWidget(key: _profilePicKey, photoPath: photoPath, size: 40),
                   ),
                 );
               },
@@ -225,7 +228,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                       )
                     else
                       SliverPadding(
-                        padding: const EdgeInsets.only(bottom: 150),
+                        padding: LayoutConstants.pageBottomPadding,
                         sliver: SliverList(
                           delegate: SliverChildBuilderDelegate(
                             (context, index) {
@@ -277,7 +280,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                       )
                   else
                     SliverPadding(
-                      padding: const EdgeInsets.only(bottom: 150),
+                      padding: LayoutConstants.pageBottomPadding,
                       sliver: SliverList.list(
                         children: [
                           _buildSectionTitle(context, 'Liser Mixes'),

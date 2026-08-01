@@ -406,7 +406,7 @@ class _PlaylistDetailsPageState extends State<PlaylistDetailsPage> {
                   ),
                 ),
                 const SliverToBoxAdapter(
-                  child: SizedBox(height: 150),
+                  child: SizedBox(height: 170),
                 ),
               ],
             ),

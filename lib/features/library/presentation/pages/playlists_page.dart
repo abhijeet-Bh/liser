@@ -8,6 +8,7 @@ import 'package:liser/features/library/data/models/song.dart';
 import 'package:liser/features/library/presentation/bloc/library_bloc.dart';
 import 'package:liser/features/player/presentation/bloc/player_bloc.dart';
 import 'package:liser/app/widgets/frosted_background.dart';
+import 'package:liser/core/constants/layout_constants.dart';
 import 'package:go_router/go_router.dart';
 
 class PlaylistsPage extends StatelessWidget {
@@ -35,7 +36,7 @@ class PlaylistsPage extends StatelessWidget {
               final playlists = state.playlists;
 
               return ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 8).copyWith(bottom: 150),
+                padding: LayoutConstants.standardListPadding,
                 children: [
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),

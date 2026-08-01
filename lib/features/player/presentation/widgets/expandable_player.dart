@@ -19,11 +19,15 @@ import 'package:go_router/go_router.dart';
 import 'package:liser/core/utils/app_toast.dart';
 
 class ExpandablePlayer extends StatefulWidget {
-  final Widget bottomNavigationBar;
-  
+  final Widget? bottomNavigationBar;
+  final Animation<double> shrinkProgress;
+  final ValueNotifier<double>? expandProgress;
+
   const ExpandablePlayer({
     super.key,
-    required this.bottomNavigationBar,
+    this.bottomNavigationBar,
+    required this.shrinkProgress,
+    this.expandProgress,
   });
 
   @override
@@ -37,7 +41,7 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
   bool _isDragging = false;
   double _dragPosition = 0.0;
   late AnimationController _queueController;
-  final double _miniPlayerHeight = 66.0;
+  final double _miniPlayerHeight = 60.0; // Matched with FloatingNavBar
   bool _isQueueMode = false;
   DateTime? _lastBackPressTime;
 
@@ -46,11 +50,14 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 200),
+      duration: const Duration(milliseconds: 300),
     );
+    _controller.addListener(() {
+      widget.expandProgress?.value = _controller.value;
+    });
     _queueController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 300),
+      duration: const Duration(milliseconds: 250),
     );
     WidgetsBinding.instance.addObserver(this);
   }
@@ -184,37 +191,35 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
             final screenWidth = constraints.maxWidth;
             
             final safeAreaBottom = MediaQuery.of(context).padding.bottom;
-            final navBarHeight = 56.0 + safeAreaBottom; 
             
             return AnimatedBuilder(
-              animation: _controller,
+              animation: Listenable.merge([_controller, widget.shrinkProgress]),
               builder: (context, child) {
                 // Apply curve to morphing layout but NOT to the drag itself to keep it strictly under the finger
                 final curvedValue = _controller.value;
                 
-                final navBarOffset = curvedValue * navBarHeight;
+                final shrinkVal = widget.shrinkProgress.value;
                 
-                final playerBottomPos = (1 - curvedValue) * navBarHeight;
+                final minLeftMargin = 16.0 + 60.0 + 16.0; // nav margin + min nav width + gap
+                final defaultMargin = 16.0; // Matches nav bar margin
+                
+                final currentLeftMargin = (defaultMargin + (minLeftMargin - defaultMargin) * shrinkVal) * (1 - curvedValue);
+                final currentRightMargin = defaultMargin * (1 - curvedValue);
+                
+                final bottomWhenNotShrunk = safeAreaBottom + 4.0 + 60.0 + 12.0; 
+                final bottomWhenShrunk = safeAreaBottom + 4.0;
+                final currentBottom = bottomWhenShrunk + (bottomWhenNotShrunk - bottomWhenShrunk) * (1 - shrinkVal);
+                
+                final playerBottomPos = currentBottom * (1 - curvedValue);
                 final playerHeight = _miniPlayerHeight + curvedValue * (screenHeight - _miniPlayerHeight);
-                final playerMargin = (1 - curvedValue) * 8.0;
                 
                 return Stack(
                   children: [
-                    Positioned(
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      child: Transform.translate(
-                        offset: Offset(0, navBarOffset),
-                        child: widget.bottomNavigationBar,
-                      ),
-                    ),
-                    
                     if (hasSong)
                       Positioned(
-                        left: playerMargin,
-                        right: playerMargin,
-                        bottom: playerBottomPos + (1 - curvedValue) * 12.0, // Increased gap
+                        left: currentLeftMargin,
+                        right: currentRightMargin,
+                        bottom: playerBottomPos,
                         height: playerHeight,
                         child: GestureDetector(
                           onVerticalDragUpdate: _handleDragUpdate,
@@ -224,30 +229,38 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
                               _controller.animateTo(1.0, curve: Curves.easeOutCubic, duration: const Duration(milliseconds: 200));
                             }
                           },
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).colorScheme.surface, // Solid color to stand out from blur
-                              borderRadius: BorderRadius.circular(12 + 24 * curvedValue),
-                              border: Border.all(
-                                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1 - (0.1 * curvedValue)),
-                                width: 1,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.2 + 0.1 * curvedValue),
-                                  blurRadius: 20 + 20 * curvedValue,
-                                  spreadRadius: 2 * (1 - curvedValue),
-                                  offset: const Offset(0, 8),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(30 + 6 * curvedValue),
+                            child: BackdropFilter(
+                              filter: ImageFilter.blur(sigmaX: 20 * (1 - curvedValue), sigmaY: 20 * (1 - curvedValue)),
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  // Morph from frosted glass (nav bar style) to solid surface (expanded player style)
+                                  color: Color.lerp(
+                                    Theme.of(context).colorScheme.primary.withValues(alpha: Theme.of(context).brightness == Brightness.light ? 0.08 : 0.05),
+                                    Theme.of(context).colorScheme.surface,
+                                    curvedValue,
+                                  ),
+                                  borderRadius: BorderRadius.circular(30 + 6 * curvedValue),
+                                  border: Border.all(
+                                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05),
+                                    width: 0.5,
+                                  ),
+                                  // Drop shadow only when expanded
+                                  boxShadow: curvedValue > 0 ? [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: 0.2 + 0.1 * curvedValue),
+                                      blurRadius: 20 + 20 * curvedValue,
+                                      spreadRadius: 2 * (1 - curvedValue),
+                                      offset: const Offset(0, 8),
+                                    ),
+                                  ] : null,
                                 ),
-                              ],
-                            ),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(12 + 24 * curvedValue),
-                              child: Stack(
-                                children: [
-                                  if (curvedValue > 0) ...[
-                                    if (song.artworkPath != null)
-                                      Positioned.fill(
+                                child: Stack(
+                                  children: [
+                                    if (curvedValue > 0) ...[
+                                      if (song.artworkPath != null)
+                                        Positioned.fill(
                                         child: Opacity(
                                           opacity: curvedValue,
                                           child: Image.file(
@@ -290,10 +303,11 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
                                 ],
                               ),
                             ),
-                          ),
-                        ),
-                      ),
-                  ],
+                          ), // BackdropFilter
+                        ), // ClipRRect
+                      ), // GestureDetector
+                    ), // Positioned
+                  ], // Stack children
                 );
               },
             );
@@ -312,60 +326,78 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
             padding: const EdgeInsets.symmetric(horizontal: 12.0),
             child: Row(
               children: [
-                const SizedBox(width: 50, height: 50),
+                const SizedBox(width: 48, height: 48),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        song.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
-                      ),
-                      Text(
-                        song.artist,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color, fontSize: 13),
-                      ),
-                    ],
-                  ),
-                ),
-                IconButton(
-                  onPressed: () => context.read<PlayerBloc>().add(TogglePlayPause()),
-                  icon: Icon(
-                    state.status == PlayerStatus.playing ? CupertinoIcons.pause_fill : CupertinoIcons.play_fill,
-                    size: 28,
-                  ),
-                ),
-                IconButton(
-                  onPressed: state.hasNext ? () => context.read<PlayerBloc>().add(NextSong()) : null,
-                  icon: Icon(
-                    CupertinoIcons.forward_fill,
-                    color: state.hasNext ? Theme.of(context).iconTheme.color : Theme.of(context).dividerColor,
-                    size: 22,
+                  child: Transform.translate(
+                    offset: const Offset(0, -4),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    song.title,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                                  ),
+                                  Text(
+                                    song.artist,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6), fontSize: 12),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            IconButton(
+                              onPressed: () => context.read<PlayerBloc>().add(TogglePlayPause()),
+                              icon: Icon(
+                                state.status == PlayerStatus.playing ? CupertinoIcons.pause_fill : CupertinoIcons.play_fill,
+                                size: 28,
+                              ),
+                            ),
+                            IconButton(
+                              onPressed: state.hasNext ? () => context.read<PlayerBloc>().add(NextSong()) : null,
+                              icon: Icon(
+                                CupertinoIcons.forward_fill,
+                                color: state.hasNext ? Theme.of(context).iconTheme.color : Theme.of(context).dividerColor,
+                                size: 22,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Padding(
+                          padding: const EdgeInsets.only(right: 12.0),
+                          child: SizedBox(
+                            height: 3,
+                            child: LinearProgressIndicator(
+                              value: state.duration.inMilliseconds > 0 
+                                  ? (state.position.inMilliseconds / state.duration.inMilliseconds).clamp(0.0, 1.0) 
+                                  : 0.0,
+                              backgroundColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
+                              valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.primary),
+                              borderRadius: BorderRadius.circular(1.5),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 2), // Keep a small physical buffer
+                      ],
+                    ),
                   ),
                 ),
               ],
             ),
           ),
         ),
-        Padding(
-          padding: const EdgeInsets.only(bottom: 2.0),
-          child: SizedBox(
-            height: 2,
-            child: LinearProgressIndicator(
-              value: state.duration.inMilliseconds > 0 
-                  ? (state.position.inMilliseconds / state.duration.inMilliseconds).clamp(0.0, 1.0) 
-                  : 0.0,
-              backgroundColor: Colors.transparent,
-              valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.primary),
-            ),
-          ),
-        ),
+        // Progress bar moved to under artist
       ],
     );
   }
@@ -724,10 +756,10 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
   }
 
   Widget _buildMorphingArtwork(dynamic song, double curvedValue, double screenWidth, double screenHeight) {
-    const double miniSize = 50.0;
-    const double miniLeft = 8.0;
-    const double miniTop = 8.0;
-    const double miniRadius = 8.0;
+    const double miniSize = 48.0;
+    const double miniLeft = 6.0;
+    const double miniTop = 6.0;
+    const double miniRadius = 24.0;
     
     // Normal Full Screen Poster bounds
     // Removed duplicate declarations here

@@ -10,6 +10,7 @@ import 'package:liser/app/widgets/frosted_background.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:liser/core/widgets/warning_dialog.dart';
+import 'package:liser/core/constants/layout_constants.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({super.key});
@@ -59,7 +60,7 @@ class SettingsPage extends StatelessWidget {
         body: FrostedBackground(
           child: SafeArea(
           child: ListView(
-            padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 8).copyWith(bottom: 150),
+            padding: LayoutConstants.standardListPadding,
             children: [
               _buildSectionHeader(context, 'Library Management'),
               ListTile(
@@ -288,9 +289,9 @@ class SettingsPage extends StatelessWidget {
                         child: OverflowBox(
                           maxHeight: 80,
                           child: SvgPicture.asset(
-                            'assets/icons/liser-logo.svg',
-                            width: 220,
-                            height: 80,
+                            'assets/icons/blufin-logo.svg',
+                            width: 120,
+                            height: 30,
                             fit: BoxFit.contain,
                             colorFilter: ColorFilter.mode(
                               Theme.of(context).colorScheme.onSurface,

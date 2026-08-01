@@ -4,6 +4,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:liser/app/widgets/frosted_background.dart';
+import 'package:liser/core/constants/layout_constants.dart';
 import 'package:liser/features/library/data/models/song.dart';
 import 'package:liser/features/library/presentation/bloc/library_bloc.dart';
 
@@ -36,7 +37,7 @@ class LibraryPage extends StatelessWidget {
               final albums = albumsMap.keys.toList()..sort();
 
               return ListView(
-                padding: const EdgeInsets.only(top: 8, bottom: 150),
+                padding: LayoutConstants.standardListPadding,
                 children: [
                   ListTile(
                     contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
