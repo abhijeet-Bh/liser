@@ -33,24 +33,58 @@ class _AllTracksPageState extends State<AllTracksPage> {
   void _showSortOptions(BuildContext context) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      backgroundColor: Colors.transparent,
+      elevation: 0,
       builder: (context) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SizedBox(height: 12),
-              Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(2))),
-              const SizedBox(height: 16),
-              const Text('Sort By', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              _buildSortOption(context, 'Newest', TrackSortOption.newest, CupertinoIcons.time),
-              _buildSortOption(context, 'Most Played', TrackSortOption.mostPlayed, CupertinoIcons.play_circle),
-              _buildSortOption(context, 'Title (A-Z)', TrackSortOption.titleAsc, CupertinoIcons.sort_down),
-              _buildSortOption(context, 'Title (Z-A)', TrackSortOption.titleDesc, CupertinoIcons.sort_up),
-              const SizedBox(height: 80),
-            ],
+        return ClipRRect(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+            child: Container(
+              color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.75),
+              child: SafeArea(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const SizedBox(height: 12),
+                    Container(
+                      width: 48,
+                      height: 5,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.withValues(alpha: 0.4),
+                        borderRadius: BorderRadius.circular(2.5),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    Text(
+                      'Sort Tracks',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.5,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Column(
+                        children: [
+                          _buildSortOption(context, 'Newest', TrackSortOption.newest, CupertinoIcons.time),
+                          const SizedBox(height: 8),
+                          _buildSortOption(context, 'Most Played', TrackSortOption.mostPlayed, CupertinoIcons.play_circle),
+                          const SizedBox(height: 8),
+                          _buildSortOption(context, 'Title (A-Z)', TrackSortOption.titleAsc, CupertinoIcons.sort_down),
+                          const SizedBox(height: 8),
+                          _buildSortOption(context, 'Title (Z-A)', TrackSortOption.titleDesc, CupertinoIcons.sort_up),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 60),
+                  ],
+                ),
+              ),
+            ),
           ),
         );
       }
@@ -59,14 +93,56 @@ class _AllTracksPageState extends State<AllTracksPage> {
 
   Widget _buildSortOption(BuildContext context, String title, TrackSortOption option, IconData icon) {
     final isSelected = _sortOption == option;
-    return ListTile(
-      leading: Icon(icon, color: isSelected ? Theme.of(context).colorScheme.primary : Colors.grey),
-      title: Text(title, style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.normal)),
-      trailing: isSelected ? Icon(CupertinoIcons.checkmark_alt, color: Theme.of(context).colorScheme.primary) : null,
-      onTap: () {
-        setState(() => _sortOption = option);
-        Navigator.pop(context);
-      },
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          setState(() => _sortOption = option);
+          Navigator.pop(context);
+        },
+        borderRadius: BorderRadius.circular(16),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+          decoration: BoxDecoration(
+            color: isSelected ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.15) : Theme.of(context).colorScheme.surface.withValues(alpha: 0.5),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isSelected ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.3) : Colors.transparent,
+              width: 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: isSelected ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.2) : Colors.transparent,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  icon,
+                  size: 20,
+                  color: isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                    color: isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurface,
+                  ),
+                ),
+              ),
+              if (isSelected)
+                Icon(CupertinoIcons.checkmark_alt_circle_fill, color: Theme.of(context).colorScheme.primary, size: 22),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -87,6 +163,7 @@ class _AllTracksPageState extends State<AllTracksPage> {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
+      elevation: 0,
       isScrollControlled: true,
       builder: (sheetContext) {
         return StreamBuilder<List<Playlist>>(
@@ -94,36 +171,41 @@ class _AllTracksPageState extends State<AllTracksPage> {
           builder: (context, snapshot) {
             final playlists = snapshot.data ?? [];
             return DraggableScrollableSheet(
-              initialChildSize: 0.5,
-              minChildSize: 0.3,
+              initialChildSize: 0.6,
+              minChildSize: 0.4,
               maxChildSize: 0.9,
               expand: false,
               builder: (_, scrollController) {
-                return Container(
-                  padding: const EdgeInsets.only(top: 16),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surface,
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-                  ),
-                  child: Column(
-                    children: [
-                      Container(
-                        width: 40,
-                        height: 4,
-                        margin: const EdgeInsets.only(bottom: 24),
-                        decoration: BoxDecoration(
-                          color: Colors.grey.withValues(alpha: 0.3),
-                          borderRadius: BorderRadius.circular(2),
-                        ),
+                return ClipRRect(
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+                    child: Container(
+                      padding: const EdgeInsets.only(top: 12),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.75),
                       ),
-                      const Text(
-                        'Add to Playlist',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
+                      child: Column(
+                        children: [
+                          Container(
+                            width: 48,
+                            height: 5,
+                            margin: const EdgeInsets.only(bottom: 24),
+                            decoration: BoxDecoration(
+                              color: Colors.grey.withValues(alpha: 0.4),
+                              borderRadius: BorderRadius.circular(2.5),
+                            ),
+                          ),
+                          Text(
+                            'Add to Playlist',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: -0.5,
+                              color: Theme.of(context).colorScheme.onSurface,
+                            ),
+                          ),
+                          const SizedBox(height: 24),
                       if (playlists.isEmpty)
                         const Padding(
                           padding: EdgeInsets.all(32.0),
@@ -138,58 +220,101 @@ class _AllTracksPageState extends State<AllTracksPage> {
                               final playlist = playlists[index];
                               final isAlreadyAdded = playlist.songIds.contains(song.id);
                               
-                              return ListTile(
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                                leading: Container(
-                                  width: 48,
-                                  height: 48,
-                                  decoration: BoxDecoration(
-                                    color: isAlreadyAdded 
-                                      ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.2) 
-                                      : Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
-                                    borderRadius: BorderRadius.circular(8),
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                                child: Material(
+                                  color: Colors.transparent,
+                                  child: InkWell(
+                                    borderRadius: BorderRadius.circular(16),
+                                    onTap: () {
+                                      if (isAlreadyAdded) {
+                                        context.read<LibraryBloc>().add(RemoveSongFromPlaylist(playlist, song));
+                                      } else {
+                                        context.read<LibraryBloc>().add(AddSongToPlaylist(playlist, song));
+                                      }
+                                    },
+                                    child: AnimatedContainer(
+                                      duration: const Duration(milliseconds: 200),
+                                      padding: const EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        color: isAlreadyAdded ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.15) : Theme.of(context).colorScheme.surface.withValues(alpha: 0.6),
+                                        borderRadius: BorderRadius.circular(16),
+                                        border: Border.all(
+                                          color: isAlreadyAdded ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.3) : Colors.transparent,
+                                        ),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Container(
+                                            width: 52,
+                                            height: 52,
+                                            decoration: BoxDecoration(
+                                              color: isAlreadyAdded ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.2) : Theme.of(context).colorScheme.surface.withValues(alpha: 0.8),
+                                              borderRadius: BorderRadius.circular(12),
+                                              boxShadow: [
+                                                BoxShadow(
+                                                  color: Colors.black.withValues(alpha: 0.05),
+                                                  blurRadius: 10,
+                                                  offset: const Offset(0, 4),
+                                                )
+                                              ],
+                                            ),
+                                            child: Icon(
+                                              CupertinoIcons.music_note_list,
+                                              color: isAlreadyAdded ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                                              size: 24,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 16),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  playlist.name,
+                                                  style: TextStyle(
+                                                    fontWeight: isAlreadyAdded ? FontWeight.w700 : FontWeight.w600,
+                                                    fontSize: 16,
+                                                    color: isAlreadyAdded ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurface,
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 4),
+                                                Text(
+                                                  '${playlist.songIds.length} songs',
+                                                  style: TextStyle(
+                                                    fontSize: 13,
+                                                    fontWeight: FontWeight.w500,
+                                                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          if (isAlreadyAdded)
+                                            Container(
+                                              padding: const EdgeInsets.all(4),
+                                              decoration: BoxDecoration(
+                                                color: Theme.of(context).colorScheme.primary,
+                                                shape: BoxShape.circle,
+                                              ),
+                                              child: const Icon(CupertinoIcons.checkmark_alt, color: Colors.white, size: 16),
+                                            )
+                                          else
+                                            Icon(CupertinoIcons.add_circled, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.2), size: 28),
+                                        ],
+                                      ),
+                                    ),
+                                    ),
                                   ),
-                                  child: Icon(
-                                    isAlreadyAdded ? CupertinoIcons.checkmark_alt : CupertinoIcons.music_note_list,
-                                    color: isAlreadyAdded ? Theme.of(context).colorScheme.primary : Colors.grey,
-                                  ),
-                                ),
-                                title: Text(
-                                  playlist.name,
-                                  style: const TextStyle(fontWeight: FontWeight.w600),
-                                ),
-                                subtitle: Text(
-                                  '${playlist.songIds.length} songs',
-                                  style: TextStyle(
-                                    color: Theme.of(context).textTheme.bodySmall?.color,
-                                  ),
-                                ),
-                                trailing: Icon(
-                                  isAlreadyAdded 
-                                      ? CupertinoIcons.checkmark_circle_fill 
-                                      : CupertinoIcons.circle,
-                                  color: isAlreadyAdded 
-                                      ? Theme.of(context).colorScheme.primary 
-                                      : Colors.white30,
-                                ),
-                                onTap: () {
-                                  if (isAlreadyAdded) {
-                                    context.read<LibraryBloc>().add(
-                                          RemoveSongFromPlaylist(playlist, song),
-                                        );
-                                  } else {
-                                    context.read<LibraryBloc>().add(
-                                          AddSongToPlaylist(playlist, song),
-                                        );
-                                  }
-                                },
-                              );
+                                );
                             },
                           ),
                         ),
                     ],
                   ),
-                );
+                ),
+              ),
+            );
               },
             );
           },
