@@ -4,8 +4,10 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:liser/app/widgets/frosted_background.dart';
+import 'package:liser/core/constants/layout_constants.dart';
 import 'package:liser/features/library/data/models/song.dart';
 import 'package:liser/features/library/presentation/bloc/library_bloc.dart';
+import 'package:liser/core/constants/app_constants.dart';
 
 class LibraryPage extends StatelessWidget {
   const LibraryPage({super.key});
@@ -36,15 +38,15 @@ class LibraryPage extends StatelessWidget {
               final albums = albumsMap.keys.toList()..sort();
 
               return ListView(
-                padding: const EdgeInsets.only(top: 8, bottom: 150),
+                padding: LayoutConstants.standardListPadding,
                 children: [
                   ListTile(
                     contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
                     leading: Container(
-                      padding: const EdgeInsets.all(12),
+                      padding: AppPadding.allMd,
                       decoration: BoxDecoration(
                         color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: AppRadius.circularMd,
                       ),
                       child: Icon(CupertinoIcons.music_note_list, color: Theme.of(context).colorScheme.primary),
                     ),
@@ -58,10 +60,10 @@ class LibraryPage extends StatelessWidget {
                   ListTile(
                     contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
                     leading: Container(
-                      padding: const EdgeInsets.all(12),
+                      padding: AppPadding.allMd,
                       decoration: BoxDecoration(
                         color: Theme.of(context).colorScheme.secondary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: AppRadius.circularMd,
                       ),
                       child: Icon(CupertinoIcons.music_albums, color: Theme.of(context).colorScheme.secondary),
                     ),
@@ -115,7 +117,7 @@ class LibraryPage extends StatelessWidget {
         children: [
           Expanded(
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: AppRadius.circularMd,
               child: Container(
                 width: double.infinity,
                 color: Theme.of(context).colorScheme.surfaceContainerHighest,

@@ -70,5 +70,13 @@
 	<array>
 		<string>audio</string>
 	</array>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Liser requires access to the local network to discover and share music with other Liser devices nearby.</string>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_http._tcp</string>
+		<string>_liser-share._tcp</string>
+		<string>_liser-share._udp</string>
+	</array>
 </dict>
 </plist>

@@ -1,22 +1,11 @@
-import 'package:hive/hive.dart';
+import 'package:drift/drift.dart' as drift;
+import 'package:liser/core/storage/database/app_database.dart';
 
-part 'playlist.g.dart';
-
-@HiveType(typeId: 2)
-class Playlist extends HiveObject {
-  @HiveField(0)
+class Playlist {
   String id;
-
-  @HiveField(1)
   String name;
-
-  @HiveField(2)
   List<String> songIds;
-
-  @HiveField(3)
   DateTime createdAt;
-
-  @HiveField(4)
   String? coverPath;
 
   Playlist({
@@ -26,4 +15,24 @@ class Playlist extends HiveObject {
     required this.createdAt,
     this.coverPath,
   });
+
+  factory Playlist.fromDrift(PlaylistData data, {List<String>? songIds}) {
+    return Playlist(
+      id: data.id,
+      name: data.name,
+      songIds: songIds ?? [],
+      createdAt: data.createdAt,
+      coverPath: data.coverPath,
+    );
+  }
+
+  PlaylistsCompanion toDriftCompanion() {
+    return PlaylistsCompanion(
+      id: drift.Value(id),
+      name: drift.Value(name),
+      createdAt: drift.Value(createdAt),
+      coverPath: drift.Value(coverPath),
+    );
+  }
 }
+

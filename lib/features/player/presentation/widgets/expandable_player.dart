@@ -5,55 +5,87 @@ import 'package:flutter/material.dart';
 import 'package:flutter/physics.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:just_audio/just_audio.dart';
 import 'package:liser/features/player/presentation/bloc/player_bloc.dart';
 import 'package:liser/features/library/data/models/song.dart';
 import 'package:liser/features/library/data/models/playlist.dart';
 import 'package:liser/features/library/presentation/bloc/library_bloc.dart';
 import 'package:liser/app/theme/app_colors.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 import 'package:liser/app/di/service_locator.dart';
-import 'package:liser/core/storage/database/hive_service.dart';
+import 'package:liser/features/library/data/repositories/library_repository.dart';
+
+import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
+import 'package:liser/core/utils/app_toast.dart';
+import 'package:liser/core/constants/app_constants.dart';
 
 class ExpandablePlayer extends StatefulWidget {
-  final Widget bottomNavigationBar;
-  
+  final Widget? bottomNavigationBar;
+  final Animation<double> shrinkProgress;
+  final ValueNotifier<double>? expandProgress;
+
   const ExpandablePlayer({
     super.key,
-    required this.bottomNavigationBar,
+    this.bottomNavigationBar,
+    required this.shrinkProgress,
+    this.expandProgress,
   });
 
   @override
   State<ExpandablePlayer> createState() => _ExpandablePlayerState();
 }
 
-class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProviderStateMixin {
+class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProviderStateMixin, WidgetsBindingObserver {
   late AnimationController _controller;
   late Animation<double> _miniPlayerOpacityAnimation;
   
   bool _isDragging = false;
   double _dragPosition = 0.0;
   late AnimationController _queueController;
-  final double _miniPlayerHeight = 66.0;
+  final double _miniPlayerHeight = 60.0; // Matched with FloatingNavBar
   bool _isQueueMode = false;
+  DateTime? _lastBackPressTime;
 
   @override
   void initState() {
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 200),
+      duration: AppDurations.normal,
     );
+    _controller.addListener(() {
+      widget.expandProgress?.value = _controller.value;
+    });
     _queueController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 300),
+      duration: const Duration(milliseconds: 250),
     );
+    WidgetsBinding.instance.addObserver(this);
   }
+
+
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _controller.dispose();
     _queueController.dispose();
     super.dispose();
+  }
+
+  @override
+  Future<bool> didPopRoute() async {
+    if (_controller.value > 0.0) {
+      _controller.animateTo(0.0, curve: Curves.easeOutCubic, duration: AppDurations.fast);
+      if (_isQueueMode) {
+        setState(() {
+          _isQueueMode = false;
+          _queueController.reverse();
+        });
+      }
+      return true;
+    }
+    return false;
   }
 
   void _handleDragUpdate(DragUpdateDetails details) {
@@ -94,9 +126,9 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
       _controller.animateWith(simulation);
     } else {
       if (_controller.value > 0.5) {
-        _controller.animateTo(1.0, curve: Curves.easeOutCubic, duration: const Duration(milliseconds: 200));
+        _controller.animateTo(1.0, curve: Curves.easeOutCubic, duration: AppDurations.fast);
       } else {
-        _controller.animateTo(0.0, curve: Curves.easeOutCubic, duration: const Duration(milliseconds: 200));
+        _controller.animateTo(0.0, curve: Curves.easeOutCubic, duration: AppDurations.fast);
       }
     }
   }
@@ -115,14 +147,44 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
 
   @override
   Widget build(BuildContext context) {
-    return BlocConsumer<PlayerBloc, PlayerUiState>(
-      listenWhen: (prev, curr) => prev.queue != curr.queue || prev.currentIndex != curr.currentIndex,
-      listener: (context, state) {
-        _optimisticQueue = null;
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+
+        if (_controller.value > 0.0) {
+          _controller.animateTo(0.0, curve: Curves.easeOutCubic, duration: AppDurations.fast);
+          if (_isQueueMode) {
+            setState(() {
+              _isQueueMode = false;
+              _queueController.reverse();
+            });
+          }
+          return;
+        }
+
+        if (context.canPop()) {
+          context.pop();
+          return;
+        }
+
+        final now = DateTime.now();
+        if (_lastBackPressTime == null ||
+            now.difference(_lastBackPressTime!) > const Duration(seconds: 2)) {
+          _lastBackPressTime = now;
+          AppToast.show(context, 'Press back again to exit');
+        } else {
+          SystemNavigator.pop();
+        }
       },
-      builder: (context, state) {
-        final song = state.currentSong;
-        final hasSong = song != null;
+      child: BlocConsumer<PlayerBloc, PlayerUiState>(
+        listenWhen: (prev, curr) => prev.queue != curr.queue || prev.currentIndex != curr.currentIndex,
+        listener: (context, state) {
+          _optimisticQueue = null;
+        },
+        builder: (context, state) {
+          final song = state.currentSong;
+          final hasSong = song != null;
 
         return LayoutBuilder(
           builder: (context, constraints) {
@@ -130,70 +192,76 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
             final screenWidth = constraints.maxWidth;
             
             final safeAreaBottom = MediaQuery.of(context).padding.bottom;
-            final navBarHeight = 56.0 + safeAreaBottom; 
             
             return AnimatedBuilder(
-              animation: _controller,
+              animation: Listenable.merge([_controller, widget.shrinkProgress]),
               builder: (context, child) {
                 // Apply curve to morphing layout but NOT to the drag itself to keep it strictly under the finger
                 final curvedValue = _controller.value;
                 
-                final navBarOffset = curvedValue * navBarHeight;
+                final shrinkVal = widget.shrinkProgress.value;
                 
-                final playerBottomPos = (1 - curvedValue) * navBarHeight;
+                final minLeftMargin = 16.0 + 60.0 + 16.0; // nav margin + min nav width + gap
+                final defaultMargin = 16.0; // Matches nav bar margin
+                
+                final currentLeftMargin = (defaultMargin + (minLeftMargin - defaultMargin) * shrinkVal) * (1 - curvedValue);
+                final currentRightMargin = defaultMargin * (1 - curvedValue);
+                
+                final bottomWhenNotShrunk = safeAreaBottom + 4.0 + 60.0 + 12.0; 
+                final bottomWhenShrunk = safeAreaBottom + 4.0;
+                final currentBottom = bottomWhenShrunk + (bottomWhenNotShrunk - bottomWhenShrunk) * (1 - shrinkVal);
+                
+                final playerBottomPos = currentBottom * (1 - curvedValue);
                 final playerHeight = _miniPlayerHeight + curvedValue * (screenHeight - _miniPlayerHeight);
-                final playerMargin = (1 - curvedValue) * 8.0;
                 
                 return Stack(
                   children: [
-                    Positioned(
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      child: Transform.translate(
-                        offset: Offset(0, navBarOffset),
-                        child: widget.bottomNavigationBar,
-                      ),
-                    ),
-                    
                     if (hasSong)
                       Positioned(
-                        left: playerMargin,
-                        right: playerMargin,
-                        bottom: playerBottomPos + (1 - curvedValue) * 12.0, // Increased gap
+                        left: currentLeftMargin,
+                        right: currentRightMargin,
+                        bottom: playerBottomPos,
                         height: playerHeight,
                         child: GestureDetector(
                           onVerticalDragUpdate: _handleDragUpdate,
                           onVerticalDragEnd: _handleDragEnd,
                           onTap: () {
                             if (_controller.value < 0.1) {
-                              _controller.animateTo(1.0, curve: Curves.easeOutCubic, duration: const Duration(milliseconds: 200));
+                              _controller.animateTo(1.0, curve: Curves.easeOutCubic, duration: AppDurations.fast);
                             }
                           },
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: Theme.of(context).colorScheme.surface, // Solid color to stand out from blur
-                              borderRadius: BorderRadius.circular(12 + 24 * curvedValue),
-                              border: Border.all(
-                                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1 - (0.1 * curvedValue)),
-                                width: 1,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.2 + 0.1 * curvedValue),
-                                  blurRadius: 20 + 20 * curvedValue,
-                                  spreadRadius: 2 * (1 - curvedValue),
-                                  offset: const Offset(0, 8),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(30 + 6 * curvedValue),
+                            child: BackdropFilter(
+                              filter: ImageFilter.blur(sigmaX: 20 * (1 - curvedValue), sigmaY: 20 * (1 - curvedValue)),
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  // Morph from frosted glass (nav bar style) to solid surface (expanded player style)
+                                  color: Color.lerp(
+                                    Theme.of(context).colorScheme.primary.withValues(alpha: Theme.of(context).brightness == Brightness.light ? 0.08 : 0.05),
+                                    Theme.of(context).colorScheme.surface,
+                                    curvedValue,
+                                  ),
+                                  borderRadius: BorderRadius.circular(30 + 6 * curvedValue),
+                                  border: Border.all(
+                                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.05),
+                                    width: 0.5,
+                                  ),
+                                  // Drop shadow only when expanded
+                                  boxShadow: curvedValue > 0 ? [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: 0.2 + 0.1 * curvedValue),
+                                      blurRadius: 20 + 20 * curvedValue,
+                                      spreadRadius: 2 * (1 - curvedValue),
+                                      offset: const Offset(0, 8),
+                                    ),
+                                  ] : null,
                                 ),
-                              ],
-                            ),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(12 + 24 * curvedValue),
-                              child: Stack(
-                                children: [
-                                  if (curvedValue > 0) ...[
-                                    if (song.artworkPath != null)
-                                      Positioned.fill(
+                                child: Stack(
+                                  children: [
+                                    if (curvedValue > 0) ...[
+                                      if (song.artworkPath != null)
+                                        Positioned.fill(
                                         child: Opacity(
                                           opacity: curvedValue,
                                           child: Image.file(
@@ -236,18 +304,20 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
                                 ],
                               ),
                             ),
-                          ),
-                        ),
-                      ),
-                  ],
+                          ), // BackdropFilter
+                        ), // ClipRRect
+                      ), // GestureDetector
+                    ), // Positioned
+                  ], // Stack children
                 );
               },
             );
           }
         );
       },
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildMiniPlayerUI(BuildContext context, PlayerUiState state, dynamic song) {
     return Column(
@@ -257,60 +327,78 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
             padding: const EdgeInsets.symmetric(horizontal: 12.0),
             child: Row(
               children: [
-                const SizedBox(width: 50, height: 50),
+                const SizedBox(width: 48, height: 48),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        song.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
-                      ),
-                      Text(
-                        song.artist,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color, fontSize: 13),
-                      ),
-                    ],
-                  ),
-                ),
-                IconButton(
-                  onPressed: () => context.read<PlayerBloc>().add(TogglePlayPause()),
-                  icon: Icon(
-                    state.status == PlayerStatus.playing ? CupertinoIcons.pause_fill : CupertinoIcons.play_fill,
-                    size: 28,
-                  ),
-                ),
-                IconButton(
-                  onPressed: state.hasNext ? () => context.read<PlayerBloc>().add(NextSong()) : null,
-                  icon: Icon(
-                    CupertinoIcons.forward_fill,
-                    color: state.hasNext ? Theme.of(context).iconTheme.color : Theme.of(context).dividerColor,
-                    size: 22,
+                  child: Transform.translate(
+                    offset: const Offset(0, -4),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    song.title,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                                  ),
+                                  Text(
+                                    song.artist,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6), fontSize: 12),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            IconButton(
+                              onPressed: () => context.read<PlayerBloc>().add(TogglePlayPause()),
+                              icon: Icon(
+                                state.status == PlayerStatus.playing ? CupertinoIcons.pause_fill : CupertinoIcons.play_fill,
+                                size: 28,
+                              ),
+                            ),
+                            IconButton(
+                              onPressed: state.hasNext ? () => context.read<PlayerBloc>().add(NextSong()) : null,
+                              icon: Icon(
+                                CupertinoIcons.forward_fill,
+                                color: state.hasNext ? Theme.of(context).iconTheme.color : Theme.of(context).dividerColor,
+                                size: 22,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Padding(
+                          padding: const EdgeInsets.only(right: 12.0),
+                          child: SizedBox(
+                            height: 3,
+                            child: LinearProgressIndicator(
+                              value: state.duration.inMilliseconds > 0 
+                                  ? (state.position.inMilliseconds / state.duration.inMilliseconds).clamp(0.0, 1.0) 
+                                  : 0.0,
+                              backgroundColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
+                              valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.primary),
+                              borderRadius: BorderRadius.circular(1.5),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 2), // Keep a small physical buffer
+                      ],
+                    ),
                   ),
                 ),
               ],
             ),
           ),
         ),
-        Padding(
-          padding: const EdgeInsets.only(bottom: 2.0),
-          child: SizedBox(
-            height: 2,
-            child: LinearProgressIndicator(
-              value: state.duration.inMilliseconds > 0 
-                  ? (state.position.inMilliseconds / state.duration.inMilliseconds).clamp(0.0, 1.0) 
-                  : 0.0,
-              backgroundColor: Colors.transparent,
-              valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.primary),
-            ),
-          ),
-        ),
+        // Progress bar moved to under artist
       ],
     );
   }
@@ -337,7 +425,7 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
               
               Expanded(
                 child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 300),
+                  duration: AppDurations.normal,
                   child: _isQueueMode 
                       ? _buildQueueUI(context, state, song) 
                       : Center(
@@ -353,7 +441,7 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
               if (!_isQueueMode) const SizedBox(height: 16),
               
               AnimatedSize(
-                duration: const Duration(milliseconds: 300),
+                duration: AppDurations.normal,
                 curve: Curves.easeOutCubic,
                 child: _isQueueMode ? const SizedBox.shrink() : _buildTitleRow(context, state, song, isDark),
               ),
@@ -436,17 +524,51 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  IconButton(
-                    icon: const Icon(CupertinoIcons.shuffle),
-                    color: state.shuffleEnabled ? AppColors.primary : Theme.of(context).textTheme.bodySmall?.color,
-                    onPressed: () {
-                      context.read<PlayerBloc>().add(ToggleShuffle());
-                    },
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(CupertinoIcons.shuffle),
+                        color: state.shuffleEnabled ? AppColors.primary : Theme.of(context).textTheme.bodySmall?.color,
+                        onPressed: () {
+                        HapticFeedback.lightImpact();
+                          context.read<PlayerBloc>().add(ToggleShuffle());
+                        },
+                      ),
+                      IconButton(
+                        icon: state.repeatMode == LoopMode.one
+                            ? const Icon(CupertinoIcons.repeat_1)
+                            : state.repeatMode == LoopMode.all
+                                ? const Icon(CupertinoIcons.repeat)
+                                : Stack(
+                                    alignment: Alignment.center,
+                                    children: [
+                                      const Icon(CupertinoIcons.repeat),
+                                      Transform.rotate(
+                                        angle: -0.785, // -45 degrees
+                                        child: Container(
+                                          width: 2,
+                                          height: 22,
+                                          color: Theme.of(context).textTheme.bodySmall?.color,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                        color: state.repeatMode != LoopMode.off
+                            ? AppColors.primary
+                            : Theme.of(context).textTheme.bodySmall?.color,
+                        onPressed: () {
+                        HapticFeedback.lightImpact();
+                          context.read<PlayerBloc>().add(const ToggleRepeatMode());
+                        },
+                      ),
+                    ],
                   ),
                   IconButton(
                     icon: const Icon(CupertinoIcons.list_bullet),
                     color: _isQueueMode ? AppColors.primary : Theme.of(context).textTheme.bodySmall?.color,
                     onPressed: () {
+                        HapticFeedback.lightImpact();
                       setState(() {
                         _isQueueMode = !_isQueueMode;
                         if (_isQueueMode) {
@@ -552,12 +674,13 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
                     icon: Icon(song.favorite ? CupertinoIcons.heart_fill : CupertinoIcons.heart),
                     color: song.favorite ? AppColors.primary : null,
                     onPressed: () {
+                        HapticFeedback.lightImpact();
                       context.read<PlayerBloc>().add(ToggleFavorite(song));
                     },
                   ),
                   PopupMenuButton<String>(
                     icon: const Icon(CupertinoIcons.ellipsis),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    shape: RoundedRectangleBorder(borderRadius: AppRadius.circularLg),
                     color: Theme.of(context).colorScheme.surface,
                     elevation: 8,
                     onSelected: (value) {
@@ -620,164 +743,24 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
 
   Widget _buildQueueUI(BuildContext context, PlayerUiState state, dynamic song) {
     final queue = _optimisticQueue ?? state.queue;
-    return Column(
-      key: const ValueKey('queue_ui'),
-      children: [
-        SizedBox(
-          height: 60,
-          child: Row(
-            children: [
-              const SizedBox(width: 84), // Space for morphing artwork (60) + padding (24)
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      song?.title ?? '',
-                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    Text(
-                      song?.artist ?? '',
-                      style: TextStyle(fontSize: 14, color: Colors.grey),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        
-        const SizedBox(height: 8),
-        
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text(
-              'Playing Next',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            TextButton(
-              onPressed: () => context.read<PlayerBloc>().add(const ClearQueue()),
-              child: Text('Clear Queue', style: TextStyle(color: AppColors.primary)),
-            ),
-          ],
-        ),
-        
-        Expanded(
-          child: queue.length <= state.currentIndex + 1 
-          ? const Center(
-              child: Text(
-                'No upcoming songs', 
-                style: TextStyle(color: Colors.grey, fontSize: 16)
-              )
-            )
-          : ShaderMask(
-              shaderCallback: (Rect bounds) {
-                return const LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [Colors.transparent, Colors.white, Colors.white, Colors.transparent],
-                  stops: [0.0, 0.05, 0.90, 1.0],
-                ).createShader(bounds);
-              },
-              blendMode: BlendMode.dstIn,
-              child: ReorderableListView.builder(
-                padding: const EdgeInsets.only(top: 16, bottom: 24),
-                itemCount: queue.length - state.currentIndex - 1,
-              onReorder: (oldIndex, newIndex) {
-                setState(() {
-                  if (oldIndex < newIndex) {
-                    newIndex -= 1;
-                  }
-                  final baseIndex = state.currentIndex + 1;
-                  _optimisticQueue = List.from(state.queue);
-                  final item = _optimisticQueue!.removeAt(baseIndex + oldIndex);
-                  _optimisticQueue!.insert(baseIndex + newIndex, item);
-                });
-                final baseIndex = state.currentIndex + 1;
-                context.read<PlayerBloc>().add(ReorderQueue(baseIndex + oldIndex, baseIndex + newIndex));
-              },
-              itemBuilder: (context, index) {
-                final songIndex = state.currentIndex + 1 + index;
-                final qSong = queue[songIndex];
-                
-                return InkWell(
-                  key: ValueKey(qSong.id),
-                  onTap: () {
-                    // Play this song? The queue logic usually just jumps to it or plays it.
-                    // Let's just play it from the queue context if they tap it.
-                    context.read<PlayerBloc>().add(PlaySong(song: qSong, queue: queue));
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                    child: Row(
-                      children: [
-                        ReorderableDragStartListener(
-                          index: index,
-                          child: const Padding(
-                            padding: EdgeInsets.only(right: 12.0),
-                            child: Icon(CupertinoIcons.bars, color: Colors.white38),
-                          ),
-                        ),
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(6),
-                          child: Container(
-                            width: 48,
-                            height: 48,
-                            color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                            child: qSong.artworkPath != null
-                                ? Image.file(
-                                    File(qSong.artworkPath!),
-                                    fit: BoxFit.cover,
-                                  )
-                                : const Icon(CupertinoIcons.music_note, color: Colors.grey),
-                          ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                qSong.title,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                qSong.artist,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  color: Theme.of(context).textTheme.bodySmall?.color,
-                                  fontSize: 13,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
-        ),)
-      ],
+    return _QueueListWidget(
+      queue: queue,
+      currentIndex: state.currentIndex,
+      song: song,
+      onClose: () {
+        setState(() {
+          _isQueueMode = false;
+          _queueController.reverse();
+        });
+      },
     );
   }
 
   Widget _buildMorphingArtwork(dynamic song, double curvedValue, double screenWidth, double screenHeight) {
-    const double miniSize = 50.0;
-    const double miniLeft = 8.0;
-    const double miniTop = 8.0;
-    const double miniRadius = 8.0;
+    const double miniSize = 48.0;
+    const double miniLeft = 6.0;
+    const double miniTop = 6.0;
+    const double miniRadius = 24.0;
     
     // Normal Full Screen Poster bounds
     // Removed duplicate declarations here
@@ -864,10 +847,10 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (sheetContext) {
-        return ValueListenableBuilder<Box<Playlist>>(
-          valueListenable: sl<HiveService>().playlistsBox.listenable(),
-          builder: (context, box, _) {
-            final playlists = box.values.toList();
+        return StreamBuilder<List<Playlist>>(
+          stream: sl<LibraryRepository>().watchPlaylists(),
+          builder: (context, snapshot) {
+            final playlists = snapshot.data ?? [];
             return DraggableScrollableSheet(
               initialChildSize: 0.5,
               minChildSize: 0.3,
@@ -901,7 +884,7 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
                       const SizedBox(height: 16),
                       if (playlists.isEmpty)
                         const Padding(
-                          padding: EdgeInsets.all(32.0),
+                          padding: AppPadding.allXxl,
                           child: Text('No playlists created yet.'),
                         )
                       else
@@ -920,31 +903,43 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
                                   height: 48,
                                   decoration: BoxDecoration(
                                     color: isAlreadyAdded 
-                                      ? Colors.grey.withValues(alpha: 0.1) 
-                                      : Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-                                    borderRadius: BorderRadius.circular(8),
+                                      ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.2) 
+                                      : Theme.of(context).colorScheme.primary.withValues(alpha: 0.05),
+                                    borderRadius: AppRadius.circularSm,
                                   ),
                                   child: Icon(
                                     isAlreadyAdded ? CupertinoIcons.checkmark_alt : CupertinoIcons.music_note_list,
-                                    color: isAlreadyAdded ? Colors.grey : Theme.of(context).colorScheme.primary,
+                                    color: isAlreadyAdded ? Theme.of(context).colorScheme.primary : Colors.grey,
                                   ),
                                 ),
                                 title: Text(
                                   playlist.name,
-                                  style: TextStyle(
-                                    color: isAlreadyAdded ? Colors.grey : null,
-                                  ),
+                                  style: const TextStyle(fontWeight: FontWeight.w600),
                                 ),
                                 subtitle: Text(
                                   '${playlist.songIds.length} songs',
                                   style: TextStyle(
-                                    color: isAlreadyAdded ? Colors.grey : null,
+                                    color: Theme.of(context).textTheme.bodySmall?.color,
                                   ),
                                 ),
-                                onTap: isAlreadyAdded ? null : () {
-                                  context.read<LibraryBloc>().add(
-                                        AddSongToPlaylist(playlist, song),
-                                      );
+                                trailing: Icon(
+                                  isAlreadyAdded 
+                                      ? CupertinoIcons.checkmark_circle_fill 
+                                      : CupertinoIcons.circle,
+                                  color: isAlreadyAdded 
+                                      ? Theme.of(context).colorScheme.primary 
+                                      : Colors.white30,
+                                ),
+                                onTap: () {
+                                  if (isAlreadyAdded) {
+                                    context.read<LibraryBloc>().add(
+                                          RemoveSongFromPlaylist(playlist, song),
+                                        );
+                                  } else {
+                                    context.read<LibraryBloc>().add(
+                                          AddSongToPlaylist(playlist, song),
+                                        );
+                                  }
                                 },
                               );
                             },
@@ -959,5 +954,320 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
         );
       },
     );
+  }
+}
+
+class _QueueListWidget extends StatefulWidget {
+  final List<Song> queue;
+  final int currentIndex;
+  final dynamic song;
+  final VoidCallback onClose;
+
+  const _QueueListWidget({
+    Key? key,
+    required this.queue,
+    required this.currentIndex,
+    required this.song,
+    required this.onClose,
+  }) : super(key: key);
+
+  @override
+  State<_QueueListWidget> createState() => _QueueListWidgetState();
+}
+
+class _QueueListWidgetState extends State<_QueueListWidget> {
+  late ScrollController _scrollController;
+  bool _pastRevealed = false;
+  bool _bottomReached = false;
+  List<Song>? _optimisticQueue;
+
+  @override
+  void initState() {
+    super.initState();
+    // Calculate initial offset:
+    // Past songs: widget.currentIndex * 64.0 (assuming 64 is item height)
+    // Divider: 25.0 (if currentIndex > 0)
+    double offset = 0.0;
+    if (widget.currentIndex > 0) {
+      offset = (widget.currentIndex * 64.0) + 25.0;
+    }
+    _scrollController = ScrollController(initialScrollOffset: offset);
+  }
+
+  @override
+  void didUpdateWidget(_QueueListWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.currentIndex != widget.currentIndex) {
+      double targetOffset = 0.0;
+      if (widget.currentIndex > 0) {
+        targetOffset = (widget.currentIndex * 64.0) + 25.0;
+      }
+      
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          targetOffset,
+          duration: AppDurations.slow,
+          curve: Curves.easeInOutCubic,
+        );
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final queue = _optimisticQueue ?? widget.queue;
+    
+    return Column(
+      key: const ValueKey('queue_ui'),
+      children: [
+        SizedBox(
+          height: 60,
+          child: Row(
+            children: [
+              const SizedBox(width: 84),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      widget.song?.title ?? '',
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Text(
+                      widget.song?.artist ?? '',
+                      style: const TextStyle(fontSize: 14, color: Colors.grey),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        
+        const SizedBox(height: 8),
+        
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'Playing Next',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            TextButton(
+              onPressed: () {
+                HapticFeedback.lightImpact();
+                context.read<PlayerBloc>().add(const ClearQueue());
+              },
+              child: Text('Clear Queue', style: TextStyle(color: Theme.of(context).colorScheme.primary)),
+            ),
+          ],
+        ),
+        
+        Expanded(
+          child: queue.length <= 1
+              ? const Center(
+                  child: Text('Empty Queue',
+                      style: TextStyle(color: Colors.grey, fontSize: 16)))
+              : ShaderMask(
+                  shaderCallback: (Rect bounds) {
+                    return const LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [Colors.transparent, Colors.white, Colors.white, Colors.transparent],
+                      stops: [0.0, 0.05, 0.90, 1.0],
+                    ).createShader(bounds);
+                  },
+                  blendMode: BlendMode.dstIn,
+                  child: NotificationListener<ScrollNotification>(
+                    onNotification: (scrollInfo) {
+                      if (scrollInfo is ScrollUpdateNotification) {
+                        if (widget.currentIndex > 0) {
+                          double threshold = (widget.currentIndex * 64.0) + 25.0 - 10.0;
+                          if (scrollInfo.metrics.pixels < threshold && !_pastRevealed) {
+                            HapticFeedback.selectionClick();
+                            _pastRevealed = true;
+                          } else if (scrollInfo.metrics.pixels > threshold + 20) {
+                            _pastRevealed = false;
+                          }
+                        }
+                        
+                        if (scrollInfo.metrics.pixels >= scrollInfo.metrics.maxScrollExtent && scrollInfo.metrics.maxScrollExtent > 0) {
+                          if (!_bottomReached) {
+                            HapticFeedback.selectionClick();
+                            _bottomReached = true;
+                          }
+                        } else if (scrollInfo.metrics.pixels < scrollInfo.metrics.maxScrollExtent - 20) {
+                          _bottomReached = false;
+                        }
+                      }
+                      return false;
+                    },
+                    child: ReorderableListView(
+                      onReorderStart: (index) => HapticFeedback.selectionClick(),
+                      onReorderEnd: (index) => HapticFeedback.lightImpact(),
+                      scrollController: _scrollController,
+                      padding: const EdgeInsets.only(top: 16, bottom: 24),
+                      buildDefaultDragHandles: false,
+                      onReorder: (oldIndex, newIndex) {
+                        // Map visual indices to actual queue indices
+                        int mapVisualToQueue(int visIndex) {
+                          if (widget.currentIndex == 0) {
+                            // No past songs, no divider
+                            return visIndex + 1; // Everything is after current song
+                          } else {
+                            if (visIndex < widget.currentIndex) return visIndex; // Past song
+                            if (visIndex == widget.currentIndex) return -1; // Divider
+                            return visIndex; // Future song (visIndex 1 is queue[1], wait...)
+                            // If C=2. Past: 0,1. Divider: 2. Future: 3,4. Queue: 0,1,2(curr),3,4
+                            // visIndex 0 -> queue 0
+                            // visIndex 1 -> queue 1
+                            // visIndex 2 -> Divider
+                            // visIndex 3 -> queue 3
+                          }
+                        }
+                        
+                        if (oldIndex < newIndex) newIndex -= 1;
+                        
+                        int realOld = mapVisualToQueue(oldIndex);
+                        int realNew = mapVisualToQueue(newIndex);
+                        
+                        if (realOld == -1 || realNew == -1) return; // Can't reorder divider
+                        
+                        setState(() {
+                          _optimisticQueue = List.from(widget.queue);
+                          final item = _optimisticQueue!.removeAt(realOld);
+                          
+                          // After removing from realOld, we need to adjust realNew if it was after realOld
+                          int adjustedNew = realNew;
+                          if (realOld < realNew) {
+                            adjustedNew -= 1;
+                          }
+                          _optimisticQueue!.insert(adjustedNew, item);
+                        });
+                        context.read<PlayerBloc>().add(ReorderQueue(realOld, realNew));
+                      },
+                      children: _buildListChildren(queue),
+                    ),
+                  ),
+                ),
+        ),
+      ],
+    );
+  }
+
+  List<Widget> _buildListChildren(List<Song> queue) {
+    List<Widget> children = [];
+    
+    for (int i = 0; i < queue.length; i++) {
+      if (i == widget.currentIndex) {
+        if (widget.currentIndex > 0) {
+          children.add(
+            Container(
+              key: const ValueKey('divider'),
+              padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 24.0),
+              child: Row(
+                children: List.generate(40, (index) {
+                  return Expanded(
+                    child: Container(
+                      color: index % 2 == 0 ? Colors.grey.withValues(alpha: 0.3) : Colors.transparent,
+                      height: 1,
+                    ),
+                  );
+                }),
+              ),
+            )
+          );
+        }
+        continue; // Skip current song
+      }
+      
+      final qSong = queue[i];
+      final isPast = i < widget.currentIndex;
+      
+      children.add(
+        InkWell(
+          key: ValueKey(qSong.id + '_$i'),
+          onTap: () {
+            HapticFeedback.lightImpact();
+            context.read<PlayerBloc>().add(PlaySong(song: qSong, queue: queue));
+          },
+          child: Opacity(
+            opacity: isPast ? 0.4 : 1.0,
+            child: SizedBox(
+              height: 64, // explicitly height to match our offset calculation
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                child: Row(
+                  children: [
+                    if (!isPast)
+                      ReorderableDragStartListener(
+                        index: children.length, // use current length as visual index
+                        child: const Padding(
+                          padding: EdgeInsets.only(right: 12.0),
+                          child: Icon(CupertinoIcons.bars, color: Colors.white38),
+                        ),
+                      )
+                    else
+                      const SizedBox(width: 36),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(6),
+                      child: Container(
+                        width: 48,
+                        height: 48,
+                        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                        child: qSong.artworkPath != null
+                            ? Image.file(
+                                File(qSong.artworkPath!),
+                                fit: BoxFit.cover,
+                              )
+                            : const Icon(CupertinoIcons.music_note, color: Colors.grey),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            qSong.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            qSong.artist,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: Theme.of(context).textTheme.bodySmall?.color,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        )
+      );
+    }
+    
+    return children;
   }
 }

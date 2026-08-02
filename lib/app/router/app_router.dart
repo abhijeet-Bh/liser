@@ -8,6 +8,7 @@ import 'package:liser/features/library/presentation/pages/playlists_page.dart';
 import 'package:liser/features/library/presentation/pages/playlist_details_page.dart';
 import 'package:liser/features/onboarding/presentation/pages/onboarding_page.dart';
 import 'package:liser/features/settings/presentation/pages/settings_page.dart';
+import 'package:liser/features/sharing/presentation/pages/liser_share_page.dart';
 import 'package:liser/features/splash/presentation/pages/splash_page.dart';
 import 'package:liser/features/profile/presentation/pages/profile_page.dart';
 
@@ -31,6 +32,10 @@ class AppRouter {
       GoRoute(
         path: '/onboarding',
         builder: (context, state) => const OnboardingPage(),
+      ),
+      GoRoute(
+        path: '/settings/share',
+        builder: (context, state) => const LiserSharePage(),
       ),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {
