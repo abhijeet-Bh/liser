@@ -40,7 +40,7 @@ class AppSettings extends HiveObject {
     this.dynamicColors = true,
     this.darkMode = false,
     this.firstLaunch = true,
-    this.themeMode = 0,
+    this.themeMode = 2,
     this.themeColorId = 0,
     this.userName,
     this.userPhotoPath,

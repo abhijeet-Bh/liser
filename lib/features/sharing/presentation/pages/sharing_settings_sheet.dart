@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:liser/app/di/service_locator.dart';
 import 'package:liser/features/sharing/data/services/sharing_service.dart';
+import 'package:liser/core/constants/app_constants.dart';
 
 class SharingSettingsSheet extends StatefulWidget {
   final VoidCallback onSettingsChanged;
@@ -114,11 +115,11 @@ class _SharingSettingsSheetState extends State<SharingSettingsSheet> {
                     prefixIcon: const Icon(CupertinoIcons.device_phone_portrait),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: AppRadius.circularLg,
                       borderSide: BorderSide(color: Colors.grey.withValues(alpha: 0.2)),
                     ),
                     focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: AppRadius.circularLg,
                       borderSide: BorderSide(color: theme.colorScheme.primary),
                     ),
                     hintText: 'Enter device name',
@@ -266,7 +267,7 @@ class _SharingSettingsSheetState extends State<SharingSettingsSheet> {
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(8),
+              padding: AppPadding.allSm,
               decoration: BoxDecoration(
                 color: color.withValues(alpha: 0.1),
                 shape: BoxShape.circle,

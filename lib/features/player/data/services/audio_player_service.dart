@@ -4,6 +4,10 @@ import 'package:just_audio/just_audio.dart';
 import 'package:just_audio_background/just_audio_background.dart';
 import 'package:liser/core/storage/repositories/settings_repository.dart';
 import 'package:liser/features/library/data/models/song.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:liser/app/di/service_locator.dart';
+import 'package:liser/features/library/data/repositories/library_repository.dart';
+import 'dart:convert';
 
 class AudioPlayerService {
   final AudioPlayer _player = AudioPlayer();
@@ -12,6 +16,49 @@ class AudioPlayerService {
       StreamController.broadcast();
 
   AudioPlayerService() {
+    _restoreQueueState();
+  }
+  
+  Future<void> _saveQueueState() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final songIds = _queue.map((s) => s.id).toList();
+      await prefs.setStringList('saved_queue_ids', songIds);
+      await prefs.setInt('saved_queue_index', currentIndex);
+      await prefs.setInt('saved_queue_position', _player.position.inMilliseconds);
+    } catch (e) {
+      // ignore
+    }
+  }
+  
+  Future<void> _restoreQueueState() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final songIds = prefs.getStringList('saved_queue_ids');
+      final index = prefs.getInt('saved_queue_index') ?? 0;
+      final positionMs = prefs.getInt('saved_queue_position') ?? 0;
+      
+      if (songIds != null && songIds.isNotEmpty) {
+        final libRepo = sl<LibraryRepository>();
+        final allSongs = await libRepo.getSongs();
+        
+        List<Song> savedSongs = [];
+        for (final id in songIds) {
+          final s = allSongs.cast<Song?>().firstWhere((song) => song?.id == id, orElse: () => null);
+          if (s != null) {
+            savedSongs.add(s);
+          }
+        }
+        
+        if (savedSongs.isNotEmpty) {
+          final safeIndex = index < savedSongs.length ? index : 0;
+          await loadQueue(savedSongs, initialIndex: safeIndex);
+          await _player.seek(Duration(milliseconds: positionMs));
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
   }
 
   Song? _currentSong;
@@ -90,6 +137,14 @@ class AudioPlayerService {
       _currentSong = _queue[index];
 
       _currentSongController.add(_currentSong);
+      _saveQueueState();
+    });
+    
+    // Also save state on position change sparingly or pause
+    _player.playerStateStream.listen((state) {
+      if (!state.playing) {
+        _saveQueueState();
+      }
     });
   }
 
@@ -180,6 +235,7 @@ class AudioPlayerService {
     _queue.insert(newIndex, song);
     await _playlist!.move(oldIndex, newIndex);
     _currentSongController.add(_currentSong);
+    _saveQueueState();
   }
 
   Future<void> clearQueue() async {
@@ -189,6 +245,7 @@ class AudioPlayerService {
     _queue.removeRange(index + 1, _queue.length);
     await _playlist!.removeRange(index + 1, _playlist!.length);
     _currentSongController.add(_currentSong);
+    _saveQueueState();
   }
 
   Future<void> addNext(Song song) async {
@@ -207,6 +264,7 @@ class AudioPlayerService {
     );
     await _playlist!.insert(insertIndex, audioSource);
     _currentSongController.add(_currentSong);
+    _saveQueueState();
   }
 
   Future<void> addToEnd(Song song) async {
@@ -224,6 +282,7 @@ class AudioPlayerService {
     );
     await _playlist!.add(audioSource);
     _currentSongController.add(_currentSong);
+    _saveQueueState();
   }
 
   Future<void> dispose() async {

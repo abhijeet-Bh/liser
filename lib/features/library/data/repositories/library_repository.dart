@@ -396,20 +396,24 @@ class LibraryRepository {
   }
 
   Future<void> _backupPlaylists() async {
-    final playlists = await getPlaylists();
-    final String? syncFolderPath = _syncService.getSyncFolderPath();
-    String scanPath = syncFolderPath ?? (await sl<MusicStorageService>().getMusicDirectory()).path;
-    
-    final file = File(p.join(scanPath, 'playlists_backup.json'));
-    final List<Map<String, dynamic>> data = playlists.map((pList) => {
-      'id': pList.id,
-      'name': pList.name,
-      'songIds': pList.songIds,
-      'createdAt': pList.createdAt.toIso8601String(),
-      'coverPath': pList.coverPath,
-    }).toList();
-    
-    await file.writeAsString(jsonEncode(data));
+    try {
+      final playlists = await getPlaylists();
+      final String? syncFolderPath = _syncService.getSyncFolderPath();
+      String scanPath = syncFolderPath ?? (await sl<MusicStorageService>().getMusicDirectory()).path;
+      
+      final file = File(p.join(scanPath, 'playlists_backup.json'));
+      final List<Map<String, dynamic>> data = playlists.map((pList) => {
+        'id': pList.id,
+        'name': pList.name,
+        'songIds': pList.songIds,
+        'createdAt': pList.createdAt.toIso8601String(),
+        'coverPath': pList.coverPath,
+      }).toList();
+      
+      await file.writeAsString(jsonEncode(data));
+    } catch (_) {
+      // Ignore backup errors, especially on Android where Scoped Storage might prevent writing to Music folder
+    }
   }
 
   Future<void> _restorePlaylists(String scanPath) async {

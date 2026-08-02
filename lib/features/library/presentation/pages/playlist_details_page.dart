@@ -1,3 +1,5 @@
+import 'dart:ui';
+import 'package:flutter/services.dart';
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
@@ -11,6 +13,7 @@ import 'package:liser/features/library/data/models/playlist.dart';
 import 'package:liser/features/library/data/models/song.dart';
 import 'package:liser/features/library/presentation/bloc/library_bloc.dart';
 import 'package:liser/features/player/presentation/bloc/player_bloc.dart';
+import 'package:liser/core/constants/app_constants.dart';
 
 class PlaylistDetailsPage extends StatefulWidget {
   final String playlistId;
@@ -187,7 +190,7 @@ class _PlaylistDetailsPageState extends State<PlaylistDetailsPage> {
                               bottom: 16,
                               right: 16,
                               child: Container(
-                                padding: const EdgeInsets.all(8),
+                                padding: AppPadding.allSm,
                                 decoration: BoxDecoration(
                                   color: Colors.black.withValues(alpha: 0.5),
                                   shape: BoxShape.circle,
@@ -222,7 +225,7 @@ class _PlaylistDetailsPageState extends State<PlaylistDetailsPage> {
                                 backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
                                 foregroundColor: Colors.white,
                                 shape: const CircleBorder(),
-                                padding: const EdgeInsets.all(16),
+                                padding: AppPadding.allLg,
                                 elevation: 0,
                               ),
                               child: const Icon(CupertinoIcons.shuffle, size: 24),
@@ -256,7 +259,7 @@ class _PlaylistDetailsPageState extends State<PlaylistDetailsPage> {
                                       : Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
                                   foregroundColor: _isEditing ? Colors.white : Colors.white38,
                                   shape: const CircleBorder(),
-                                  padding: const EdgeInsets.all(16),
+                                  padding: AppPadding.allLg,
                                   elevation: 0,
                                 ),
                                 child: Icon(
@@ -311,6 +314,8 @@ class _PlaylistDetailsPageState extends State<PlaylistDetailsPage> {
                       shadowColor: Colors.transparent,
                     ),
                     child: SliverReorderableList(
+                    onReorderStart: (index) => HapticFeedback.selectionClick(),
+                    onReorderEnd: (index) => HapticFeedback.lightImpact(),
                     itemCount: playlistSongs.length,
                     onReorder: (oldIndex, newIndex) {
                       if (!isFavorites) {
@@ -402,7 +407,7 @@ class _PlaylistDetailsPageState extends State<PlaylistDetailsPage> {
                   ),
                 ),
                 const SliverToBoxAdapter(
-                  child: SizedBox(height: 150),
+                  child: SizedBox(height: 170),
                 ),
               ],
             ),
@@ -418,6 +423,7 @@ class _PlaylistDetailsPageState extends State<PlaylistDetailsPage> {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
+      elevation: 0,
       isScrollControlled: true,
       builder: (sheetContext) {
         return BlocBuilder<LibraryBloc, LibraryState>(
@@ -442,130 +448,179 @@ class _PlaylistDetailsPageState extends State<PlaylistDetailsPage> {
                       return titleMatch || artistMatch;
                     }).toList();
 
-                    return Container(
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).colorScheme.surface,
-                        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-                      ),
-                      child: Column(
-                        children: [
-                          const SizedBox(height: 12),
-                          Container(
-                            width: 40,
-                            height: 4,
-                            decoration: BoxDecoration(
-                              color: Colors.grey.withValues(alpha: 0.3),
-                              borderRadius: BorderRadius.circular(2),
-                            ),
+                    return ClipRRect(
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+                        child: Container(
+                          padding: const EdgeInsets.only(top: 12),
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.75),
                           ),
-                          const SizedBox(height: 16),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 20),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    'Add to ${latestPlaylist.name}',
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
+                          child: Column(
+                            children: [
+                              Container(
+                                width: 48,
+                                height: 5,
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.withValues(alpha: 0.4),
+                                  borderRadius: BorderRadius.circular(2.5),
                                 ),
-                                Text(
-                                  '${latestPlaylist.songIds.length} selected',
-                                  style: TextStyle(
-                                    color: Theme.of(context).colorScheme.primary,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 20),
-                            child: CupertinoSearchTextField(
-                              placeholder: 'Search songs or artists...',
-                              style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
-                              onChanged: (value) {
-                                setSheetState(() {
-                                  searchQuery = value;
-                                });
-                              },
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          Expanded(
-                            child: filteredSongs.isEmpty
-                                ? const Center(
-                                    child: Text(
-                                      'No songs found',
-                                      style: TextStyle(color: Colors.grey),
+                              ),
+                              const SizedBox(height: 24),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 20),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        'Add to ${latestPlaylist.name}',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.w700,
+                                          letterSpacing: -0.5,
+                                          color: Theme.of(context).colorScheme.onSurface,
+                                        ),
+                                      ),
                                     ),
-                                  )
-                                : ListView.builder(
-                                    controller: scrollController,
-                                    itemCount: filteredSongs.length,
-                                    itemBuilder: (context, index) {
-                                      final song = filteredSongs[index];
-                                      final isSelected = latestPlaylist.songIds.contains(song.id);
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                      decoration: BoxDecoration(
+                                        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                      child: Text(
+                                        '${latestPlaylist.songIds.length} selected',
+                                        style: TextStyle(
+                                          color: Theme.of(context).colorScheme.primary,
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 20),
+                                child: CupertinoSearchTextField(
+                                  placeholder: 'Search songs or artists...',
+                                  style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+                                  onChanged: (value) {
+                                    setSheetState(() {
+                                      searchQuery = value;
+                                    });
+                                  },
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              Expanded(
+                                child: filteredSongs.isEmpty
+                                    ? const Center(
+                                        child: Text(
+                                          'No songs found',
+                                          style: TextStyle(color: Colors.grey),
+                                        ),
+                                      )
+                                    : ListView.builder(
+                                        controller: scrollController,
+                                        itemCount: filteredSongs.length,
+                                        itemBuilder: (context, index) {
+                                          final song = filteredSongs[index];
+                                          final isSelected = latestPlaylist.songIds.contains(song.id);
 
-                                      return ListTile(
-                                        contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
-                                        leading: ClipRRect(
-                                          borderRadius: BorderRadius.circular(6),
-                                          child: Container(
-                                            width: 40,
-                                            height: 40,
-                                            color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                                            child: song.artworkPath != null
-                                                ? Image.file(File(song.artworkPath!), fit: BoxFit.cover)
-                                                : const Icon(CupertinoIcons.music_note, color: Colors.grey),
-                                          ),
-                                        ),
-                                        title: Text(
-                                          song.title,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: const TextStyle(fontWeight: FontWeight.w600),
-                                        ),
-                                        subtitle: Text(
-                                          song.artist,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: TextStyle(
-                                            color: Theme.of(context).textTheme.bodySmall?.color,
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                        trailing: Icon(
-                                          isSelected
-                                              ? CupertinoIcons.checkmark_circle_fill
-                                              : CupertinoIcons.circle,
-                                          color: isSelected
-                                              ? Theme.of(context).colorScheme.primary
-                                              : Colors.white30,
-                                        ),
-                                        onTap: () {
-                                          if (isSelected) {
-                                            context.read<LibraryBloc>().add(
-                                                  RemoveSongFromPlaylist(latestPlaylist, song),
-                                                );
-                                          } else {
-                                            context.read<LibraryBloc>().add(
-                                                  AddSongToPlaylist(latestPlaylist, song),
-                                                );
-                                          }
+                                          return Padding(
+                                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                                            child: Material(
+                                              color: Colors.transparent,
+                                              child: InkWell(
+                                                borderRadius: AppRadius.circularLg,
+                                                onTap: () {
+                                                  if (isSelected) {
+                                                    context.read<LibraryBloc>().add(RemoveSongFromPlaylist(latestPlaylist, song));
+                                                  } else {
+                                                    context.read<LibraryBloc>().add(AddSongToPlaylist(latestPlaylist, song));
+                                                  }
+                                                },
+                                                child: AnimatedContainer(
+                                                  duration: AppDurations.fast,
+                                                  padding: AppPadding.allMd,
+                                                  decoration: BoxDecoration(
+                                                    color: isSelected ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.15) : Theme.of(context).colorScheme.surface.withValues(alpha: 0.4),
+                                                    borderRadius: AppRadius.circularLg,
+                                                    border: Border.all(
+                                                      color: isSelected ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.3) : Colors.transparent,
+                                                    ),
+                                                  ),
+                                                  child: Row(
+                                                    children: [
+                                                      ClipRRect(
+                                                        borderRadius: AppRadius.circularMd,
+                                                        child: Container(
+                                                          width: 52,
+                                                          height: 52,
+                                                          color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                                                          child: song.artworkPath != null
+                                                              ? Image.file(File(song.artworkPath!), fit: BoxFit.cover)
+                                                              : const Icon(CupertinoIcons.music_note, color: Colors.grey),
+                                                        ),
+                                                      ),
+                                                      const SizedBox(width: 16),
+                                                      Expanded(
+                                                        child: Column(
+                                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                                          children: [
+                                                            Text(
+                                                              song.title,
+                                                              maxLines: 1,
+                                                              overflow: TextOverflow.ellipsis,
+                                                              style: TextStyle(
+                                                                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+                                                                fontSize: 16,
+                                                                color: isSelected ? Theme.of(context).colorScheme.primary : Theme.of(context).colorScheme.onSurface,
+                                                              ),
+                                                            ),
+                                                            const SizedBox(height: 4),
+                                                            Text(
+                                                              song.artist,
+                                                              maxLines: 1,
+                                                              overflow: TextOverflow.ellipsis,
+                                                              style: TextStyle(
+                                                                fontSize: 13,
+                                                                fontWeight: FontWeight.w500,
+                                                                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ),
+                                                      if (isSelected)
+                                                        Container(
+                                                          padding: const EdgeInsets.all(4),
+                                                          decoration: BoxDecoration(
+                                                            color: Theme.of(context).colorScheme.primary,
+                                                            shape: BoxShape.circle,
+                                                          ),
+                                                          child: const Icon(CupertinoIcons.checkmark_alt, color: Colors.white, size: 16),
+                                                        )
+                                                      else
+                                                        Icon(CupertinoIcons.add_circled, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.2), size: 28),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          );
                                         },
-                                      );
-                                    },
-                                  ),
+                                      ),
+                              ),
+                            ],
                           ),
-                        ],
+                        ),
                       ),
                     );
                   },

@@ -15,6 +15,8 @@ import 'package:liser/core/services/artist_image_service.dart';
 import 'package:liser/features/profile/presentation/widgets/profile_picture_widget.dart';
 
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:liser/core/constants/layout_constants.dart';
+import 'package:liser/core/constants/app_constants.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -24,6 +26,8 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
+  static final GlobalKey _profilePicKey = GlobalKey();
+  
   int _lastUpdateCount = -1;
   List<Song> _suggestedSongs = [];
   List<Map<String, dynamic>> _mixes = [];
@@ -82,7 +86,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                   onTap: () => context.push('/profile'),
                   child: Padding(
                     padding: const EdgeInsets.only(right: 24),
-                    child: ProfilePictureWidget(photoPath: photoPath, size: 40),
+                    child: ProfilePictureWidget(key: _profilePicKey, photoPath: photoPath, size: 40),
                   ),
                 );
               },
@@ -106,12 +110,18 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                     _searchQuery = value;
                   });
                 },
+                onSubmitted: (_) {
+                  FocusManager.instance.primaryFocus?.unfocus();
+                },
               ),
             ),
           ),
         ),
-        body: SafeArea(
-          child: BlocBuilder<LibraryBloc, LibraryState>(
+        body: GestureDetector(
+          onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+          behavior: HitTestBehavior.translucent,
+          child: SafeArea(
+            child: BlocBuilder<LibraryBloc, LibraryState>(
             builder: (context, state) {
               if (state.status == LibraryStatus.loading) {
                 return const Center(child: CircularProgressIndicator());
@@ -208,6 +218,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                   : state.songs.where((s) => s.title.toLowerCase().contains(_searchQuery.toLowerCase()) || s.artist.toLowerCase().contains(_searchQuery.toLowerCase())).toList();
 
               return CustomScrollView(
+                keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
                 slivers: [
                   if (_searchQuery.isNotEmpty)
                     if (filteredSongs.isEmpty)
@@ -218,7 +229,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                       )
                     else
                       SliverPadding(
-                        padding: const EdgeInsets.only(bottom: 150),
+                        padding: LayoutConstants.pageBottomPadding,
                         sliver: SliverList(
                           delegate: SliverChildBuilderDelegate(
                             (context, index) {
@@ -237,7 +248,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                               return ListTile(
                                 contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
                                 leading: ClipRRect(
-                                  borderRadius: BorderRadius.circular(8),
+                                  borderRadius: AppRadius.circularSm,
                                   child: Container(
                                     width: 48,
                                     height: 48,
@@ -259,6 +270,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                                 subtitle: Text(song.artist, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color)),
                                 trailing: const Icon(CupertinoIcons.play_circle, color: Colors.grey),
                                 onTap: () {
+                                  FocusManager.instance.primaryFocus?.unfocus();
                                   context.read<PlayerBloc>().add(PlaySong(song: song, queue: filteredSongs));
                                 },
                               );
@@ -269,7 +281,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                       )
                   else
                     SliverPadding(
-                      padding: const EdgeInsets.only(bottom: 150),
+                      padding: LayoutConstants.pageBottomPadding,
                       sliver: SliverList.list(
                         children: [
                           _buildSectionTitle(context, 'Liser Mixes'),
@@ -288,9 +300,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                 ],
               );
             },
-          ),
-        ),
-      ),
+            ), // End of SafeArea
+          ), // End of GestureDetector
+        ), // End of Scaffold
+      ), // End of FrostedBackground
     );
   }
 
@@ -321,7 +334,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                 children: [
                   Expanded(
                     child: ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: AppRadius.circularMd,
                       child: Container(
                         width: double.infinity,
                         color: Theme.of(context).colorScheme.surfaceContainerHighest,
@@ -334,7 +347,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                             ),
                             Center(
                               child: Container(
-                                padding: const EdgeInsets.all(12),
+                                padding: AppPadding.allMd,
                                 decoration: BoxDecoration(
                                   color: Colors.black.withValues(alpha: 0.5),
                                   shape: BoxShape.circle,
@@ -449,7 +462,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                     width: 140,
                     height: 140,
                     decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: AppRadius.circularLg,
                       color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2),
                       boxShadow: [
                         BoxShadow(

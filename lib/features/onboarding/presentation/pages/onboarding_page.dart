@@ -10,6 +10,7 @@ import 'package:liser/features/onboarding/data/repositories/onboarding_repositor
 import 'package:liser/features/onboarding/presentation/bloc/onboarding_bloc.dart';
 
 import 'package:liser/core/utils/app_toast.dart';
+import 'package:liser/core/constants/app_constants.dart';
 
 class OnboardingPage extends StatelessWidget {
   const OnboardingPage({super.key});
@@ -54,13 +55,13 @@ class _OnboardingView extends StatelessWidget {
           ),
           child: SafeArea(
             child: Padding(
-              padding: const EdgeInsets.all(32),
+              padding: AppPadding.allXxl,
               child: Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(24),
+                      padding: AppPadding.allXl,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),

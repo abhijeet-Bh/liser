@@ -12,7 +12,7 @@ class LiserApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocBuilder<AppBloc, AppState>(
       builder: (context, state) {
-        ThemeMode themeMode = ThemeMode.system;
+        ThemeMode themeMode = ThemeMode.dark;
         int themeColorId = 0;
         
         if (state.settings != null) {

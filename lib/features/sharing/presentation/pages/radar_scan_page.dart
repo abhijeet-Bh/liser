@@ -8,6 +8,7 @@ import 'package:liser/features/library/data/models/song.dart';
 import 'package:liser/features/sharing/data/services/sharing_service.dart';
 import 'package:liser/features/sharing/presentation/bloc/sharing_bloc.dart';
 import 'package:liser/core/utils/app_toast.dart';
+import 'package:liser/core/constants/app_constants.dart';
 
 class RadarScanPage extends StatefulWidget {
   final List<Song> songs;
@@ -51,7 +52,7 @@ class _RadarScanPageState extends State<RadarScanPage> with SingleTickerProvider
         final isDark = theme.brightness == Brightness.dark;
         return AlertDialog(
           backgroundColor: isDark ? const Color(0xFF1C1C21) : Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          shape: RoundedRectangleBorder(borderRadius: AppRadius.circularXl),
           title: const Text('Connect via IP', style: TextStyle(fontWeight: FontWeight.bold)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -71,11 +72,11 @@ class _RadarScanPageState extends State<RadarScanPage> with SingleTickerProvider
                   hintText: 'e.g., 192.168.1.150',
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: AppRadius.circularLg,
                     borderSide: BorderSide(color: Colors.grey.withValues(alpha: 0.2)),
                   ),
                   focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: AppRadius.circularLg,
                     borderSide: BorderSide(color: theme.colorScheme.primary),
                   ),
                 ),
@@ -111,7 +112,7 @@ class _RadarScanPageState extends State<RadarScanPage> with SingleTickerProvider
               style: ElevatedButton.styleFrom(
                 backgroundColor: theme.colorScheme.primary,
                 foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(borderRadius: AppRadius.circularMd),
                 elevation: 0,
               ),
               child: const Text('Connect', style: TextStyle(fontWeight: FontWeight.bold)),
@@ -188,7 +189,7 @@ class _RadarScanPageState extends State<RadarScanPage> with SingleTickerProvider
                         elevation: 0,
                         borderOnForeground: false,
                         child: Padding(
-                          padding: const EdgeInsets.all(16.0),
+                          padding: AppPadding.allLg,
                           child: Row(
                             children: [
                               CircleAvatar(
@@ -309,7 +310,7 @@ class _RadarScanPageState extends State<RadarScanPage> with SingleTickerProvider
                                   child: Container(
                                     decoration: BoxDecoration(
                                       color: isDark ? const Color(0xFF141417).withValues(alpha: 0.6) : Colors.white.withValues(alpha: 0.8),
-                                      borderRadius: BorderRadius.circular(16),
+                                      borderRadius: AppRadius.circularLg,
                                       border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
                                     ),
                                     child: ListTile(
@@ -330,7 +331,7 @@ class _RadarScanPageState extends State<RadarScanPage> with SingleTickerProvider
                                         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                                         decoration: BoxDecoration(
                                           color: theme.colorScheme.primary,
-                                          borderRadius: BorderRadius.circular(12),
+                                          borderRadius: AppRadius.circularMd,
                                         ),
                                         child: const Text('Send', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
                                       ),
@@ -377,7 +378,7 @@ class _RadarScanPageState extends State<RadarScanPage> with SingleTickerProvider
   }) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32.0),
+        padding: AppPadding.allXxl,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -413,7 +414,7 @@ class _RadarScanPageState extends State<RadarScanPage> with SingleTickerProvider
 
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32.0),
+        padding: AppPadding.allXxl,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -462,12 +463,12 @@ class _RadarScanPageState extends State<RadarScanPage> with SingleTickerProvider
     final theme = Theme.of(context);
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32.0),
+        padding: AppPadding.allXxl,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              padding: const EdgeInsets.all(24),
+              padding: AppPadding.allXl,
               decoration: const BoxDecoration(
                 color: Color(0xFF10B981),
                 shape: BoxShape.circle,
@@ -489,7 +490,7 @@ class _RadarScanPageState extends State<RadarScanPage> with SingleTickerProvider
                 backgroundColor: theme.colorScheme.primary,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                shape: RoundedRectangleBorder(borderRadius: AppRadius.circularLg),
                 elevation: 0,
               ),
               child: const Text('Close', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),

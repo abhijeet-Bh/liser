@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
@@ -7,7 +8,9 @@ import 'package:liser/features/library/data/models/song.dart';
 import 'package:liser/features/library/presentation/bloc/library_bloc.dart';
 import 'package:liser/features/player/presentation/bloc/player_bloc.dart';
 import 'package:liser/app/widgets/frosted_background.dart';
+import 'package:liser/core/constants/layout_constants.dart';
 import 'package:go_router/go_router.dart';
+import 'package:liser/core/constants/app_constants.dart';
 
 class PlaylistsPage extends StatelessWidget {
   const PlaylistsPage({super.key});
@@ -34,7 +37,7 @@ class PlaylistsPage extends StatelessWidget {
               final playlists = state.playlists;
 
               return ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 8).copyWith(bottom: 150),
+                padding: LayoutConstants.standardListPadding,
                 children: [
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -60,7 +63,7 @@ class PlaylistsPage extends StatelessWidget {
                   if (playlists.isEmpty)
                     const Center(
                       child: Padding(
-                        padding: EdgeInsets.all(32.0),
+                        padding: AppPadding.allXxl,
                         child: Text('No playlists yet. Create one above!', style: TextStyle(color: Colors.grey)),
                       ),
                     )
@@ -77,14 +80,14 @@ class PlaylistsPage extends StatelessWidget {
 
   Widget _buildFavoritesCard(BuildContext context, List<Song> favorites) {
     return InkWell(
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: AppRadius.circularLg,
       onTap: () {
         context.push('/library/playlists/favorites');
       },
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: AppPadding.allLg,
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: AppRadius.circularLg,
           gradient: LinearGradient(
             colors: [
               Theme.of(context).colorScheme.primary.withValues(alpha: 0.8),
@@ -97,7 +100,7 @@ class PlaylistsPage extends StatelessWidget {
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: AppPadding.allLg,
               decoration: BoxDecoration(
                 color: Colors.white.withValues(alpha: 0.2),
                 shape: BoxShape.circle,
@@ -141,10 +144,10 @@ class PlaylistsPage extends StatelessWidget {
             height: 56,
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: AppRadius.circularMd,
             ),
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: AppRadius.circularMd,
               child: _buildMiniCollage(playlist, playlistSongs, context),
             ),
           ),
@@ -224,30 +227,87 @@ class PlaylistsPage extends StatelessWidget {
     final controller = TextEditingController();
     showDialog(
       context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.5),
       builder: (context) {
-        return AlertDialog(
-          title: const Text('New Playlist'),
-          content: TextField(
-            controller: controller,
-            decoration: const InputDecoration(hintText: 'Playlist Name'),
-            autofocus: true,
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          child: ClipRRect(
+            borderRadius: AppRadius.circularXl,
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+              child: Container(
+                padding: AppPadding.allXl,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.75),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: AppPadding.allLg,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.15),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(CupertinoIcons.music_albums, color: Theme.of(context).colorScheme.primary, size: 32),
+                    ),
+                    const SizedBox(height: 16),
+                    Text('New Playlist', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.onSurface)),
+                    const SizedBox(height: 8),
+                    Text('Give your new playlist a name', style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7))),
+                    const SizedBox(height: 24),
+                    TextField(
+                      controller: controller,
+                      autofocus: true,
+                      style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+                      decoration: InputDecoration(
+                        hintText: 'Playlist Name',
+                        hintStyle: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3)),
+                        filled: true,
+                        fillColor: Theme.of(context).colorScheme.surface.withValues(alpha: 0.5),
+                        border: OutlineInputBorder(borderRadius: AppRadius.circularLg, borderSide: BorderSide.none),
+                        focusedBorder: OutlineInputBorder(borderRadius: AppRadius.circularLg, borderSide: BorderSide(color: Theme.of(context).colorScheme.primary)),
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(borderRadius: AppRadius.circularLg),
+                            ),
+                            child: Text('Cancel', style: TextStyle(fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7))),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: FilledButton(
+                            onPressed: () {
+                              final name = controller.text.trim();
+                              if (name.isNotEmpty) {
+                                context.read<LibraryBloc>().add(CreatePlaylist(name));
+                                Navigator.pop(context);
+                              }
+                            },
+                            style: FilledButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(borderRadius: AppRadius.circularLg),
+                            ),
+                            child: const Text('Create', style: TextStyle(fontWeight: FontWeight.w600)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () {
-                final name = controller.text.trim();
-                if (name.isNotEmpty) {
-                  context.read<LibraryBloc>().add(CreatePlaylist(name));
-                  Navigator.pop(context);
-                }
-              },
-              child: const Text('Create'),
-            ),
-          ],
         );
       },
     );
