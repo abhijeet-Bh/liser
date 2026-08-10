@@ -240,11 +240,10 @@ class AudioPlayerService {
 
   Future<void> clearQueue() async {
     if (_playlist == null) return;
-    final index = currentIndex;
-    if (index >= _queue.length - 1) return;
-    _queue.removeRange(index + 1, _queue.length);
-    await _playlist!.removeRange(index + 1, _playlist!.length);
-    _currentSongController.add(_currentSong);
+    await _player.stop();
+    _queue.clear();
+    await _playlist!.clear();
+    _currentSongController.add(null);
     _saveQueueState();
   }
 

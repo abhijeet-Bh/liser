@@ -16,6 +16,7 @@ import 'package:liser/core/constants/layout_constants.dart';
 
 import 'package:liser/core/utils/app_toast.dart';
 import 'package:liser/core/constants/app_constants.dart';
+import 'package:liser/features/library/presentation/pages/song_info_page.dart';
 
 class AllTracksPage extends StatefulWidget {
   final String? artistFilter;
@@ -30,6 +31,180 @@ enum TrackSortOption { newest, mostPlayed, titleAsc, titleDesc }
 class _AllTracksPageState extends State<AllTracksPage> {
   String _searchQuery = '';
   TrackSortOption _sortOption = TrackSortOption.newest;
+  bool _isSelectionMode = false;
+  final Set<String> _selectedSongIds = {};
+
+  Widget _buildSearchBar() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      child: Row(
+        children: [
+          Expanded(
+            child: CupertinoSearchTextField(
+              placeholder: 'Search songs or artists...',
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+              backgroundColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
+              itemColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              onChanged: (value) {
+                setState(() {
+                  _searchQuery = value;
+                });
+              },
+              onSubmitted: (_) {
+                FocusManager.instance.primaryFocus?.unfocus();
+              },
+            ),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
+              borderRadius: AppRadius.circularSm,
+            ),
+            child: IconButton(
+              icon: const Icon(CupertinoIcons.slider_horizontal_3, size: 20),
+              color: Theme.of(context).colorScheme.onSurface,
+              onPressed: () => _showSortOptions(context),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSelectionBar() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      child: Row(
+        children: [
+          IconButton(
+            icon: const Icon(CupertinoIcons.xmark),
+            color: Theme.of(context).colorScheme.onSurface,
+            onPressed: () {
+              setState(() {
+                _isSelectionMode = false;
+                _selectedSongIds.clear();
+              });
+            },
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              '${_selectedSongIds.length} Selected',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
+            ),
+          ),
+          Container(
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
+              borderRadius: AppRadius.circularSm,
+            ),
+            child: IconButton(
+              icon: const Icon(CupertinoIcons.ellipsis, size: 20),
+              color: Theme.of(context).colorScheme.onSurface,
+              onPressed: () => _showBulkActionsSheet(context),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showBulkActionsSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      builder: (context) {
+        return ClipRRect(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+            child: Container(
+              color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.75),
+              child: SafeArea(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const SizedBox(height: 12),
+                    Container(
+                      width: 48,
+                      height: 5,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.withValues(alpha: 0.4),
+                        borderRadius: BorderRadius.circular(2.5),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    Text(
+                      'Bulk Actions',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.5,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Column(
+                        children: [
+                          Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              onTap: () {
+                                Navigator.pop(context);
+                                _deleteSelectedSongs();
+                              },
+                              borderRadius: AppRadius.circularLg,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                                decoration: BoxDecoration(
+                                  color: Theme.of(context).colorScheme.error.withValues(alpha: 0.1),
+                                  borderRadius: AppRadius.circularLg,
+                                ),
+                                child: Row(
+                                  children: [
+                                    Icon(CupertinoIcons.trash, color: Theme.of(context).colorScheme.error),
+                                    const SizedBox(width: 16),
+                                    Text('Delete ${_selectedSongIds.length} songs', style: TextStyle(color: Theme.of(context).colorScheme.error, fontWeight: FontWeight.w600)),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    SizedBox(height: LayoutConstants.pageBottomPadding.bottom),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      }
+    );
+  }
+
+  void _deleteSelectedSongs() {
+    final bloc = context.read<LibraryBloc>();
+    final songs = bloc.state.songs.where((s) => _selectedSongIds.contains(s.id)).toList();
+    for (final song in songs) {
+      bloc.add(RemoveSong(song));
+    }
+    setState(() {
+      _isSelectionMode = false;
+      _selectedSongIds.clear();
+    });
+    AppToast.show(context, '${songs.length} songs deleted');
+  }
 
 
   void _showSortOptions(BuildContext context) {
@@ -330,6 +505,7 @@ class _AllTracksPageState extends State<AllTracksPage> {
     return FrostedBackground(
       child: Scaffold(
         backgroundColor: Colors.transparent,
+        extendBody: true,
         extendBodyBehindAppBar: false,
         appBar: AppBar(
           backgroundColor: Colors.transparent,
@@ -358,42 +534,7 @@ class _AllTracksPageState extends State<AllTracksPage> {
           centerTitle: true,
           bottom: PreferredSize(
             preferredSize: const Size.fromHeight(60),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: CupertinoSearchTextField(
-                      placeholder: 'Search songs or artists...',
-                      style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
-                      backgroundColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
-                      itemColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                      onChanged: (value) {
-                        setState(() {
-                          _searchQuery = value;
-                        });
-                      },
-                      onSubmitted: (_) {
-                        FocusManager.instance.primaryFocus?.unfocus();
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
-                      borderRadius: AppRadius.circularSm,
-                    ),
-                    child: IconButton(
-                      icon: const Icon(CupertinoIcons.slider_horizontal_3, size: 20),
-                      color: Theme.of(context).colorScheme.onSurface,
-                      onPressed: () => _showSortOptions(context),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            child: _isSelectionMode ? _buildSelectionBar() : _buildSearchBar(),
           ),
         ),
         body: GestureDetector(
@@ -498,15 +639,38 @@ class _AllTracksPageState extends State<AllTracksPage> {
                                       ],
                                     ),
                                       child: InkWell(
-                                        onTap: () {
-                                          FocusManager.instance.primaryFocus?.unfocus();
-                                          context.read<PlayerBloc>().add(
-                                                PlaySong(song: song, queue: filteredSongs),
-                                              );
+                                        onLongPress: () {
+                                          if (!_isSelectionMode) {
+                                            setState(() {
+                                              _isSelectionMode = true;
+                                              _selectedSongIds.add(song.id);
+                                            });
+                                          }
                                         },
-                                        child: Padding(
-                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                        child: Row(
+                                        onTap: () {
+                                          if (_isSelectionMode) {
+                                            setState(() {
+                                              if (_selectedSongIds.contains(song.id)) {
+                                                _selectedSongIds.remove(song.id);
+                                                if (_selectedSongIds.isEmpty) {
+                                                  _isSelectionMode = false;
+                                                }
+                                              } else {
+                                                _selectedSongIds.add(song.id);
+                                              }
+                                            });
+                                          } else {
+                                            FocusManager.instance.primaryFocus?.unfocus();
+                                            context.read<PlayerBloc>().add(
+                                                  PlaySong(song: song, queue: filteredSongs),
+                                                );
+                                          }
+                                        },
+                                        child: AnimatedContainer(
+                                          duration: AppDurations.fast,
+                                          color: _selectedSongIds.contains(song.id) ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.1) : Colors.transparent,
+                                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                          child: Row(
                                           children: [
                                             Stack(
                                               children: [
@@ -586,6 +750,13 @@ class _AllTracksPageState extends State<AllTracksPage> {
                                                   context.read<PlayerBloc>().add(AddSongToEnd(song));
                                                 } else if (value == 'add_to_playlist') {
                                                   _showAddToPlaylistSheet(context, song);
+                                                } else if (value == 'song_info') {
+                                                  Navigator.push(
+                                                    context,
+                                                    MaterialPageRoute(
+                                                      builder: (context) => SongInfoPage(song: song),
+                                                    ),
+                                                  );
                                                 }
                                               },
                                               itemBuilder: (context) => [
@@ -616,6 +787,16 @@ class _AllTracksPageState extends State<AllTracksPage> {
                                                       Icon(CupertinoIcons.music_note_list, size: 20),
                                                       SizedBox(width: 12),
                                                       Text('Add to Playlist'),
+                                                    ],
+                                                  ),
+                                                ),
+                                                const PopupMenuItem(
+                                                  value: 'song_info',
+                                                  child: Row(
+                                                    children: [
+                                                      Icon(CupertinoIcons.info_circle, size: 20),
+                                                      SizedBox(width: 12),
+                                                      Text('Song Info'),
                                                     ],
                                                   ),
                                                 ),

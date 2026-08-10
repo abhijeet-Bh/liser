@@ -51,6 +51,7 @@ class SettingsPage extends StatelessWidget {
         }
       },
       child: Scaffold(
+        extendBody: true,
         extendBodyBehindAppBar: true,
         appBar: AppBar(
           backgroundColor: Colors.transparent,

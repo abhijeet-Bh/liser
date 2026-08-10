@@ -60,6 +60,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     return FrostedBackground(
       child: Scaffold(
         backgroundColor: Colors.transparent,
+        extendBody: true,
         extendBodyBehindAppBar: false,
         appBar: AppBar(
           backgroundColor: Colors.transparent,
