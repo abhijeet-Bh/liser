@@ -146,7 +146,7 @@ class _RadarScanPageState extends State<RadarScanPage> with SingleTickerProvider
           child: BlocConsumer<SharingBloc, SharingState>(
             listener: (context, state) {
               if (state.status == SharingStatus.error && state.errorMessage != null) {
-                AppSnackBar.show(context, state.errorMessage!);
+                AppSnackBar.show(context, state.errorMessage!, type: SnackBarType.error);
               }
             },
             builder: (context, state) {

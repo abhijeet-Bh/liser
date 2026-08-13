@@ -37,7 +37,7 @@ class _OnboardingView extends StatelessWidget {
         }
 
         if (state.status == OnboardingStatus.error) {
-          AppSnackBar.show(context, state.error ?? 'Something went wrong');
+          AppSnackBar.show(context, state.error ?? 'Something went wrong', type: SnackBarType.error);
         }
       },
       child: Scaffold(

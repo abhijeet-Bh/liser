@@ -31,19 +31,19 @@ class FloatingNavBar extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final maxWidth = constraints.maxWidth;
-        final minWidth = 60.0;
+        final minWidth = 66.0;
         final currentWidth = minWidth + (maxWidth - minWidth) * (1 - clampedShrink);
 
         return ClipRRect(
-          borderRadius: BorderRadius.circular(30),
+          borderRadius: BorderRadius.circular(33),
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
             child: Container(
-              height: 60,
+              height: 66,
               width: currentWidth,
               decoration: BoxDecoration(
                 color: theme.colorScheme.surface.withValues(alpha: 0.75),
-                borderRadius: BorderRadius.circular(30),
+                borderRadius: BorderRadius.circular(33),
                 border: Border.all(
                   color: theme.colorScheme.onSurface.withValues(alpha: 0.15),
                   width: 0.5,
@@ -60,7 +60,7 @@ class FloatingNavBar extends StatelessWidget {
                         builder: (context, animatedIndex, child) {
                           return Positioned(
                             left: ((currentWidth / 3) * animatedIndex + 12) * (1 - clampedShrink) + 10 * clampedShrink,
-                            width: ((currentWidth / 3) - 24) * (1 - clampedShrink) + (60.0 - 20) * clampedShrink, 
+                            width: ((currentWidth / 3) - 24) * (1 - clampedShrink) + (66.0 - 20) * clampedShrink, 
                             top: 10,
                             bottom: 10,
                             child: Opacity(
@@ -68,7 +68,7 @@ class FloatingNavBar extends StatelessWidget {
                               child: Container(
                                 decoration: BoxDecoration(
                                   color: activeColor,
-                                  borderRadius: BorderRadius.circular(20),
+                                  borderRadius: BorderRadius.circular(23),
                                 ),
                               ),
                             ),
@@ -90,7 +90,7 @@ class FloatingNavBar extends StatelessWidget {
                       
                       final currentItemLeft = isActive ? leftWhenFull * (1 - clampedShrink) : leftWhenFull;
                       final currentItemWidth = isActive 
-                        ? widthWhenFull * (1 - clampedShrink) + 60.0 * clampedShrink
+                        ? widthWhenFull * (1 - clampedShrink) + 66.0 * clampedShrink
                         : widthWhenFull;
 
                       return Positioned(
@@ -112,7 +112,7 @@ class FloatingNavBar extends StatelessWidget {
                                 Icon(
                                   isActive ? item.activeIcon : item.icon,
                                   color: isActive ? Colors.white : theme.colorScheme.onSurface.withValues(alpha: 0.5),
-                                  size: 18,
+                                  size: 20,
                                 ),
                                 ClipRect(
                                   child: Align(
@@ -123,7 +123,7 @@ class FloatingNavBar extends StatelessWidget {
                                       child: Text(
                                         item.label,
                                         style: TextStyle(
-                                          fontSize: 8.5,
+                                          fontSize: 9,
                                           fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
                                           color: isActive ? Colors.white : theme.colorScheme.onSurface.withValues(alpha: 0.5),
                                         ),

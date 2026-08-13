@@ -218,7 +218,7 @@ class _AllTracksPageState extends State<AllTracksPage> {
       _isSelectionMode = false;
       _selectedSongIds.clear();
     });
-    AppSnackBar.show(context, '${songs.length} songs deleted');
+    AppSnackBar.show(context, '${songs.length} songs deleted', type: SnackBarType.error);
   }
 
 
@@ -674,7 +674,7 @@ class _AllTracksPageState extends State<AllTracksPage> {
                                         SlidableAction(
                                           onPressed: (context) {
                                             context.read<PlayerBloc>().add(AddSongToEnd(song));
-                                            AppSnackBar.show(context, '${song.title} added to queue');
+                                            AppSnackBar.show(context, '${song.title} added to queue', type: SnackBarType.success);
                                           },
                                           backgroundColor: AppColors.primary,
                                           foregroundColor: Colors.white,

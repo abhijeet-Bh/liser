@@ -42,7 +42,7 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
   bool _isDragging = false;
   double _dragPosition = 0.0;
   late AnimationController _queueController;
-  final double _miniPlayerHeight = 60.0; // Matched with FloatingNavBar
+  final double _miniPlayerHeight = 66.0; // Matched with FloatingNavBar
   bool _isQueueMode = false;
   DateTime? _lastBackPressTime;
 
@@ -201,14 +201,14 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
                 
                 final shrinkVal = widget.shrinkProgress.value;
                 
-                final minLeftMargin = 16.0 + 60.0 + 16.0; // nav margin + min nav width + gap
+                final minLeftMargin = 16.0 + 66.0 + 16.0; // nav margin + min nav width + gap
                 final defaultMargin = 16.0; // Matches nav bar margin
                 
                 final currentLeftMargin = (defaultMargin + (minLeftMargin - defaultMargin) * shrinkVal) * (1 - curvedValue);
                 final currentRightMargin = defaultMargin * (1 - curvedValue);
                 
                 final baseBottomMargin = (safeAreaBottom > 20 ? 16.0 : safeAreaBottom + 4.0);
-                final bottomWhenNotShrunk = baseBottomMargin + 60.0 + 12.0; 
+                final bottomWhenNotShrunk = baseBottomMargin + 66.0 + 8.0; 
                 final bottomWhenShrunk = baseBottomMargin;
                 final currentBottom = bottomWhenShrunk + (bottomWhenNotShrunk - bottomWhenShrunk) * (1 - shrinkVal);
                 
@@ -331,7 +331,7 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
       children: [
         Expanded(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12.0),
+            padding: const EdgeInsets.only(left: 9.0, right: 12.0),
             child: Row(
               children: [
                 const SizedBox(width: 48, height: 48),
@@ -765,8 +765,8 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
 
   Widget _buildMorphingArtwork(dynamic song, double curvedValue, double screenWidth, double screenHeight) {
     const double miniSize = 48.0;
-    const double miniLeft = 6.0;
-    const double miniTop = 6.0;
+    const double miniLeft = 9.0;
+    const double miniTop = 9.0;
     const double miniRadius = 24.0;
     
     // Normal Full Screen Poster bounds
