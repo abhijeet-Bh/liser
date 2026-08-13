@@ -25,6 +25,7 @@ class LibraryPage extends StatelessWidget {
       ),
       body: FrostedBackground(
         child: SafeArea(
+          bottom: false,
           child: BlocBuilder<LibraryBloc, LibraryState>(
             builder: (context, state) {
               final songs = state.songs;

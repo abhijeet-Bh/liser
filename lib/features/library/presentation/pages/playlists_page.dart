@@ -28,6 +28,7 @@ class PlaylistsPage extends StatelessWidget {
       ),
       body: FrostedBackground(
         child: SafeArea(
+          bottom: false,
           child: BlocBuilder<LibraryBloc, LibraryState>(
             builder: (context, state) {
               if (state.status == LibraryStatus.loading) {

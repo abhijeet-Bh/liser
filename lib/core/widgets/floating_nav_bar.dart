@@ -42,10 +42,10 @@ class FloatingNavBar extends StatelessWidget {
               height: 60,
               width: currentWidth,
               decoration: BoxDecoration(
-                color: theme.colorScheme.primary.withValues(alpha: theme.brightness == Brightness.light ? 0.08 : 0.05),
+                color: theme.colorScheme.surface.withValues(alpha: 0.75),
                 borderRadius: BorderRadius.circular(30),
                 border: Border.all(
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.05),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.15),
                   width: 0.5,
                 ),
               ),
@@ -59,16 +59,16 @@ class FloatingNavBar extends StatelessWidget {
                         curve: Curves.easeOutCubic,
                         builder: (context, animatedIndex, child) {
                           return Positioned(
-                            left: ((currentWidth / 3) * animatedIndex + 8) * (1 - clampedShrink) + 6 * clampedShrink,
-                            width: ((currentWidth / 3) - 16) * (1 - clampedShrink) + (60.0 - 12) * clampedShrink, 
-                            top: 6,
-                            bottom: 6,
+                            left: ((currentWidth / 3) * animatedIndex + 12) * (1 - clampedShrink) + 10 * clampedShrink,
+                            width: ((currentWidth / 3) - 24) * (1 - clampedShrink) + (60.0 - 20) * clampedShrink, 
+                            top: 10,
+                            bottom: 10,
                             child: Opacity(
                               opacity: (1 - clampedShrink).clamp(0.0, 1.0),
                               child: Container(
                                 decoration: BoxDecoration(
-                                  color: activeColor.withValues(alpha: 0.15),
-                                  borderRadius: BorderRadius.circular(26),
+                                  color: activeColor,
+                                  borderRadius: BorderRadius.circular(20),
                                 ),
                               ),
                             ),
@@ -111,10 +111,9 @@ class FloatingNavBar extends StatelessWidget {
                               children: [
                                 Icon(
                                   isActive ? item.activeIcon : item.icon,
-                                  color: isActive ? activeColor : theme.colorScheme.onSurface.withValues(alpha: 0.5),
-                                  size: 24,
+                                  color: isActive ? Colors.white : theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                                  size: 18,
                                 ),
-                                SizedBox(height: 2 * (1 - clampedShrink)),
                                 ClipRect(
                                   child: Align(
                                     alignment: Alignment.topCenter,
@@ -124,9 +123,9 @@ class FloatingNavBar extends StatelessWidget {
                                       child: Text(
                                         item.label,
                                         style: TextStyle(
-                                          fontSize: 10,
+                                          fontSize: 8.5,
                                           fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
-                                          color: isActive ? activeColor : theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                                          color: isActive ? Colors.white : theme.colorScheme.onSurface.withValues(alpha: 0.5),
                                         ),
                                       ),
                                     ),

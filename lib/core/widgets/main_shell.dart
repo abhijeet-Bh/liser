@@ -117,7 +117,7 @@ class _MainShellState extends State<MainShell> with SingleTickerProviderStateMix
                 Positioned(
                   left: 16,
                   right: 16,
-                  bottom: safeAreaBottom + 4.0,
+                  bottom: (safeAreaBottom > 20 ? 16.0 : safeAreaBottom + 4.0),
                   child: ValueListenableBuilder<double>(
                     valueListenable: _playerExpandProgress,
                     builder: (context, expandProgress, child) {

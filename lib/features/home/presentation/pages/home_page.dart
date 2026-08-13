@@ -122,6 +122,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
           onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
           behavior: HitTestBehavior.translucent,
           child: SafeArea(
+            bottom: false,
             child: BlocBuilder<LibraryBloc, LibraryState>(
             builder: (context, state) {
               if (state.status == LibraryStatus.loading) {

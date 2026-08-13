@@ -61,8 +61,9 @@ class SettingsPage extends StatelessWidget {
         ),
         body: FrostedBackground(
           child: SafeArea(
-          child: ListView(
-            padding: LayoutConstants.standardListPadding,
+            bottom: false,
+            child: ListView(
+              padding: LayoutConstants.standardListPadding,
             children: [
               _buildSectionHeader(context, 'Library Management'),
               ListTile(

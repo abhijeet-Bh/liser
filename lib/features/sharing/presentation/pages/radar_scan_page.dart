@@ -7,7 +7,7 @@ import 'package:liser/app/widgets/frosted_background.dart';
 import 'package:liser/features/library/data/models/song.dart';
 import 'package:liser/features/sharing/data/services/sharing_service.dart';
 import 'package:liser/features/sharing/presentation/bloc/sharing_bloc.dart';
-import 'package:liser/core/utils/app_toast.dart';
+import 'package:liser/core/utils/app_snackbar.dart';
 import 'package:liser/core/constants/app_constants.dart';
 
 class RadarScanPage extends StatefulWidget {
@@ -146,7 +146,7 @@ class _RadarScanPageState extends State<RadarScanPage> with SingleTickerProvider
           child: BlocConsumer<SharingBloc, SharingState>(
             listener: (context, state) {
               if (state.status == SharingStatus.error && state.errorMessage != null) {
-                AppToast.show(context, state.errorMessage!);
+                AppSnackBar.show(context, state.errorMessage!);
               }
             },
             builder: (context, state) {

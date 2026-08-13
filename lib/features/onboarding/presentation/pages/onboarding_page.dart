@@ -9,7 +9,7 @@ import 'package:liser/features/library/presentation/bloc/library_bloc.dart';
 import 'package:liser/features/onboarding/data/repositories/onboarding_repository.dart';
 import 'package:liser/features/onboarding/presentation/bloc/onboarding_bloc.dart';
 
-import 'package:liser/core/utils/app_toast.dart';
+import 'package:liser/core/utils/app_snackbar.dart';
 import 'package:liser/core/constants/app_constants.dart';
 
 class OnboardingPage extends StatelessWidget {
@@ -37,7 +37,7 @@ class _OnboardingView extends StatelessWidget {
         }
 
         if (state.status == OnboardingStatus.error) {
-          AppToast.show(context, state.error ?? 'Something went wrong');
+          AppSnackBar.show(context, state.error ?? 'Something went wrong');
         }
       },
       child: Scaffold(

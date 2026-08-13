@@ -14,7 +14,7 @@ import 'package:liser/app/di/service_locator.dart';
 import 'package:liser/features/library/data/repositories/library_repository.dart';
 import 'package:liser/core/constants/layout_constants.dart';
 
-import 'package:liser/core/utils/app_toast.dart';
+import 'package:liser/core/utils/app_snackbar.dart';
 import 'package:liser/core/constants/app_constants.dart';
 import 'package:liser/features/library/presentation/pages/song_info_page.dart';
 
@@ -101,13 +101,12 @@ class _AllTracksPageState extends State<AllTracksPage> {
           ),
           Container(
             decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
+              color: Theme.of(context).colorScheme.error.withValues(alpha: 0.1),
               borderRadius: AppRadius.circularSm,
             ),
             child: IconButton(
-              icon: const Icon(CupertinoIcons.ellipsis, size: 20),
-              color: Theme.of(context).colorScheme.onSurface,
-              onPressed: () => _showBulkActionsSheet(context),
+              icon: Icon(CupertinoIcons.trash, size: 20, color: Theme.of(context).colorScheme.error),
+              onPressed: () => _showDeleteConfirmationDialog(context),
             ),
           ),
         ],
@@ -115,81 +114,97 @@ class _AllTracksPageState extends State<AllTracksPage> {
     );
   }
 
-  void _showBulkActionsSheet(BuildContext context) {
-    showModalBottomSheet(
+  void _showDeleteConfirmationDialog(BuildContext context) {
+    showDialog(
       context: context,
-      backgroundColor: Colors.transparent,
-      elevation: 0,
+      barrierColor: Colors.black.withValues(alpha: 0.5),
       builder: (context) {
-        return ClipRRect(
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
-            child: Container(
-              color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.75),
-              child: SafeArea(
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          child: ClipRRect(
+            borderRadius: AppRadius.circularXl,
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+              child: Container(
+                padding: AppPadding.allXl,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.75),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const SizedBox(height: 12),
                     Container(
-                      width: 48,
-                      height: 5,
+                      padding: AppPadding.allLg,
                       decoration: BoxDecoration(
-                        color: Colors.grey.withValues(alpha: 0.4),
-                        borderRadius: BorderRadius.circular(2.5),
+                        color: Theme.of(context).colorScheme.error.withValues(alpha: 0.15),
+                        shape: BoxShape.circle,
                       ),
+                      child: Icon(CupertinoIcons.trash, color: Theme.of(context).colorScheme.error, size: 32),
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 16),
                     Text(
-                      'Bulk Actions',
+                      'Delete Songs',
                       style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: -0.5,
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
                         color: Theme.of(context).colorScheme.onSurface,
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Column(
-                        children: [
-                          Material(
-                            color: Colors.transparent,
-                            child: InkWell(
-                              onTap: () {
-                                Navigator.pop(context);
-                                _deleteSelectedSongs();
-                              },
-                              borderRadius: AppRadius.circularLg,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                                decoration: BoxDecoration(
-                                  color: Theme.of(context).colorScheme.error.withValues(alpha: 0.1),
-                                  borderRadius: AppRadius.circularLg,
-                                ),
-                                child: Row(
-                                  children: [
-                                    Icon(CupertinoIcons.trash, color: Theme.of(context).colorScheme.error),
-                                    const SizedBox(width: 16),
-                                    Text('Delete ${_selectedSongIds.length} songs', style: TextStyle(color: Theme.of(context).colorScheme.error, fontWeight: FontWeight.w600)),
-                                  ],
-                                ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Are you sure you want to delete ${_selectedSongIds.length} selected songs?',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(borderRadius: AppRadius.circularLg),
+                            ),
+                            child: Text(
+                              'Cancel',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
                               ),
                             ),
                           ),
-                        ],
-                      ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: FilledButton(
+                            onPressed: () {
+                              Navigator.pop(context);
+                              _deleteSelectedSongs();
+                            },
+                            style: FilledButton.styleFrom(
+                              backgroundColor: Theme.of(context).colorScheme.error,
+                              foregroundColor: Theme.of(context).colorScheme.onError,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(borderRadius: AppRadius.circularLg),
+                            ),
+                            child: const Text('Delete', style: TextStyle(fontWeight: FontWeight.w600)),
+                          ),
+                        ),
+                      ],
                     ),
-                    SizedBox(height: LayoutConstants.pageBottomPadding.bottom),
                   ],
                 ),
               ),
             ),
           ),
         );
-      }
+      },
     );
   }
 
@@ -203,9 +218,52 @@ class _AllTracksPageState extends State<AllTracksPage> {
       _isSelectionMode = false;
       _selectedSongIds.clear();
     });
-    AppToast.show(context, '${songs.length} songs deleted');
+    AppSnackBar.show(context, '${songs.length} songs deleted');
   }
 
+
+  void _showSongQuickActions(BuildContext context, Song song) {
+    showCupertinoModalPopup(
+      context: context,
+      builder: (context) => CupertinoActionSheet(
+        title: Text(song.title),
+        message: Text(song.artist),
+        actions: [
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Navigator.pop(context);
+              setState(() {
+                if (!_isSelectionMode) {
+                  _isSelectionMode = true;
+                }
+                _selectedSongIds.add(song.id);
+              });
+            },
+            child: const Text('Select'),
+          ),
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => SongInfoPage(song: song),
+                ),
+              );
+            },
+            child: const Text('Song Info'),
+          ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          onPressed: () {
+            Navigator.pop(context);
+          },
+          isDefaultAction: true,
+          child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.w600)),
+        ),
+      ),
+    );
+  }
 
   void _showSortOptions(BuildContext context) {
     showModalBottomSheet(
@@ -616,7 +674,7 @@ class _AllTracksPageState extends State<AllTracksPage> {
                                         SlidableAction(
                                           onPressed: (context) {
                                             context.read<PlayerBloc>().add(AddSongToEnd(song));
-                                            AppToast.show(context, '${song.title} added to queue');
+                                            AppSnackBar.show(context, '${song.title} added to queue');
                                           },
                                           backgroundColor: AppColors.primary,
                                           foregroundColor: Colors.white,
@@ -638,40 +696,52 @@ class _AllTracksPageState extends State<AllTracksPage> {
                                         ),
                                       ],
                                     ),
-                                      child: InkWell(
-                                        onLongPress: () {
-                                          if (!_isSelectionMode) {
-                                            setState(() {
-                                              _isSelectionMode = true;
-                                              _selectedSongIds.add(song.id);
-                                            });
-                                          }
-                                        },
-                                        onTap: () {
-                                          if (_isSelectionMode) {
-                                            setState(() {
-                                              if (_selectedSongIds.contains(song.id)) {
-                                                _selectedSongIds.remove(song.id);
-                                                if (_selectedSongIds.isEmpty) {
-                                                  _isSelectionMode = false;
+                                      child: Builder(
+                                        builder: (context) {
+                                          Widget listItem = Material(
+                                            color: Colors.transparent,
+                                            child: InkWell(
+                                              onLongPress: Platform.isIOS ? null : () => _showSongQuickActions(context, song),
+                                              onTap: () {
+                                                if (_isSelectionMode) {
+                                                  setState(() {
+                                                    if (_selectedSongIds.contains(song.id)) {
+                                                      _selectedSongIds.remove(song.id);
+                                                      if (_selectedSongIds.isEmpty) {
+                                                        _isSelectionMode = false;
+                                                      }
+                                                    } else {
+                                                      _selectedSongIds.add(song.id);
+                                                    }
+                                                  });
+                                                } else {
+                                                  FocusManager.instance.primaryFocus?.unfocus();
+                                                  context.read<PlayerBloc>().add(
+                                                        PlaySong(song: song, queue: filteredSongs),
+                                                      );
                                                 }
-                                              } else {
-                                                _selectedSongIds.add(song.id);
-                                              }
-                                            });
-                                          } else {
-                                            FocusManager.instance.primaryFocus?.unfocus();
-                                            context.read<PlayerBloc>().add(
-                                                  PlaySong(song: song, queue: filteredSongs),
-                                                );
-                                          }
-                                        },
-                                        child: AnimatedContainer(
-                                          duration: AppDurations.fast,
+                                              },
+                                              child: SizedBox(
+                                                width: MediaQuery.of(context).size.width,
+                                                child: AnimatedContainer(
+                                                  duration: AppDurations.fast,
                                           color: _selectedSongIds.contains(song.id) ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.1) : Colors.transparent,
                                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                                           child: Row(
                                           children: [
+                                            if (_isSelectionMode)
+                                              Padding(
+                                                padding: const EdgeInsets.only(right: 12),
+                                                child: Icon(
+                                                  _selectedSongIds.contains(song.id) 
+                                                    ? CupertinoIcons.checkmark_circle_fill 
+                                                    : CupertinoIcons.circle,
+                                                  color: _selectedSongIds.contains(song.id)
+                                                    ? Theme.of(context).colorScheme.primary 
+                                                    : Theme.of(context).dividerColor,
+                                                  size: 22,
+                                                ),
+                                              ),
                                             Stack(
                                               children: [
                                                 ClipRRect(
@@ -750,13 +820,6 @@ class _AllTracksPageState extends State<AllTracksPage> {
                                                   context.read<PlayerBloc>().add(AddSongToEnd(song));
                                                 } else if (value == 'add_to_playlist') {
                                                   _showAddToPlaylistSheet(context, song);
-                                                } else if (value == 'song_info') {
-                                                  Navigator.push(
-                                                    context,
-                                                    MaterialPageRoute(
-                                                      builder: (context) => SongInfoPage(song: song),
-                                                    ),
-                                                  );
                                                 }
                                               },
                                               itemBuilder: (context) => [
@@ -790,23 +853,73 @@ class _AllTracksPageState extends State<AllTracksPage> {
                                                     ],
                                                   ),
                                                 ),
-                                                const PopupMenuItem(
-                                                  value: 'song_info',
-                                                  child: Row(
-                                                    children: [
-                                                      Icon(CupertinoIcons.info_circle, size: 20),
-                                                      SizedBox(width: 12),
-                                                      Text('Song Info'),
-                                                    ],
-                                                  ),
-                                                ),
                                               ],
                                             ),
                                           ],
                                         ),
                                       ),
                                     ),
+                                  ),
+                                );
+
+                                if (Platform.isIOS) {
+                                  return CupertinoContextMenu.builder(
+                                    builder: (context, animation) {
+                                      return FittedBox(
+                                        fit: BoxFit.cover,
+                                        child: ClipRRect(
+                                          borderRadius: BorderRadius.circular(16 * animation.value),
+                                          child: Container(
+                                            color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: animation.value),
+                                            child: listItem,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                    actions: [
+                                      Builder(
+                                        builder: (actionContext) => CupertinoContextMenuAction(
+                                          onPressed: () {
+                                            Navigator.pop(actionContext);
+                                            Future.delayed(const Duration(milliseconds: 300), () {
+                                              if (mounted) {
+                                                setState(() {
+                                                  if (!_isSelectionMode) {
+                                                    _isSelectionMode = true;
+                                                  }
+                                                  _selectedSongIds.add(song.id);
+                                                });
+                                              }
+                                            });
+                                          },
+                                          child: const Text('Select'),
+                                        ),
+                                      ),
+                                      Builder(
+                                        builder: (actionContext) => CupertinoContextMenuAction(
+                                          onPressed: () {
+                                            Navigator.pop(actionContext);
+                                            Future.delayed(const Duration(milliseconds: 300), () {
+                                              if (mounted) {
+                                                Navigator.push(
+                                                  context,
+                                                  MaterialPageRoute(
+                                                    builder: (context) => SongInfoPage(song: song),
+                                                  ),
+                                                );
+                                              }
+                                            });
+                                          },
+                                          child: const Text('Song Info'),
+                                        ),
+                                      ),
+                                    ],
                                   );
+                                }
+                                return listItem;
+                              },
+                            ),
+                          );
                                 },
                                 childCount: filteredSongs.isEmpty ? 0 : filteredSongs.length * 2 - 1,
                               ),

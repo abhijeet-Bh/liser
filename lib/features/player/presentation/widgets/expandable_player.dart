@@ -16,7 +16,7 @@ import 'package:liser/features/library/data/repositories/library_repository.dart
 
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
-import 'package:liser/core/utils/app_toast.dart';
+import 'package:liser/core/utils/app_snackbar.dart';
 import 'package:liser/core/constants/app_constants.dart';
 
 class ExpandablePlayer extends StatefulWidget {
@@ -172,7 +172,7 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
         if (_lastBackPressTime == null ||
             now.difference(_lastBackPressTime!) > const Duration(seconds: 2)) {
           _lastBackPressTime = now;
-          AppToast.show(context, 'Press back again to exit');
+          AppSnackBar.show(context, 'Press back again to exit');
         } else {
           SystemNavigator.pop();
         }
@@ -207,8 +207,9 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
                 final currentLeftMargin = (defaultMargin + (minLeftMargin - defaultMargin) * shrinkVal) * (1 - curvedValue);
                 final currentRightMargin = defaultMargin * (1 - curvedValue);
                 
-                final bottomWhenNotShrunk = safeAreaBottom + 4.0 + 60.0 + 12.0; 
-                final bottomWhenShrunk = safeAreaBottom + 4.0;
+                final baseBottomMargin = (safeAreaBottom > 20 ? 16.0 : safeAreaBottom + 4.0);
+                final bottomWhenNotShrunk = baseBottomMargin + 60.0 + 12.0; 
+                final bottomWhenShrunk = baseBottomMargin;
                 final currentBottom = bottomWhenShrunk + (bottomWhenNotShrunk - bottomWhenShrunk) * (1 - shrinkVal);
                 
                 final playerBottomPos = currentBottom * (1 - curvedValue);
@@ -238,7 +239,7 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
                                 decoration: BoxDecoration(
                                   // Morph from frosted glass (nav bar style) to solid surface (expanded player style)
                                   color: Color.lerp(
-                                    Theme.of(context).colorScheme.primary.withValues(alpha: Theme.of(context).brightness == Brightness.light ? 0.08 : 0.05),
+                                    Theme.of(context).colorScheme.surface.withValues(alpha: 0.75),
                                     Theme.of(context).colorScheme.surface,
                                     curvedValue,
                                   ),
@@ -259,30 +260,36 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
                                 ),
                                 child: Stack(
                                   children: [
-                                    if (curvedValue > 0) ...[
-                                      if (song.artworkPath != null)
-                                        Positioned.fill(
-                                        child: Opacity(
-                                          opacity: curvedValue,
-                                          child: Image.file(
-                                            File(song.artworkPath!),
-                                            fit: BoxFit.cover,
-                                            errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+                                    if (curvedValue > 0)
+                                      Positioned.fill(
+                                        child: Transform.scale(
+                                          scale: 1.15, // Scale up slightly to completely hide edge bleeding from the blur
+                                          child: Stack(
+                                            fit: StackFit.expand,
+                                            children: [
+                                              if (song.artworkPath != null)
+                                                Opacity(
+                                                  opacity: curvedValue,
+                                                  child: Image.file(
+                                                    File(song.artworkPath!),
+                                                    fit: BoxFit.cover,
+                                                    errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+                                                  ),
+                                                ),
+                                              BackdropFilter(
+                                                filter: ImageFilter.blur(
+                                                  sigmaX: 60.0 * curvedValue + 0.01, 
+                                                  sigmaY: 60.0 * curvedValue + 0.01,
+                                                  tileMode: TileMode.mirror,
+                                                ),
+                                                child: Container(
+                                                  color: (Theme.of(context).brightness == Brightness.dark ? Colors.black : Colors.white).withValues(alpha: 0.7 * curvedValue),
+                                                ),
+                                              ),
+                                            ],
                                           ),
                                         ),
                                       ),
-                                    Positioned.fill(
-                                      child: Opacity(
-                                        opacity: curvedValue,
-                                        child: BackdropFilter(
-                                          filter: ImageFilter.blur(sigmaX: 60.0, sigmaY: 60.0),
-                                          child: Container(
-                                            color: (Theme.of(context).brightness == Brightness.dark ? Colors.black : Colors.white).withValues(alpha: 0.7),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
                                   
                                   if (curvedValue < 1.0)
                                     Opacity(
