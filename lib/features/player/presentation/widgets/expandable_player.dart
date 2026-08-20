@@ -192,9 +192,21 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
         }
       },
       child: BlocConsumer<PlayerBloc, PlayerUiState>(
-        listenWhen: (prev, curr) => prev.queue != curr.queue || prev.currentIndex != curr.currentIndex,
+        listenWhen: (prev, curr) => 
+            prev.queue != curr.queue || 
+            prev.currentIndex != curr.currentIndex ||
+            prev.currentSong != curr.currentSong,
         listener: (context, state) {
           _optimisticQueue = null;
+          if (state.currentSong == null && _controller.value > 0.0) {
+            _controller.animateTo(0.0, curve: Curves.easeOutCubic, duration: AppDurations.fast);
+            if (_isQueueMode) {
+              setState(() {
+                _isQueueMode = false;
+                _queueController.reverse();
+              });
+            }
+          }
         },
         builder: (context, state) {
           final song = state.currentSong;

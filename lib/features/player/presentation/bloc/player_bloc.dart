@@ -308,13 +308,26 @@ class PlayerBloc extends Bloc<PlayerEvent, PlayerUiState> {
         // Ignore error if it fails
       }
     }
-    emit(
-      state.copyWith(
-        currentSong: event.song,
-        queue: _playerService.queue,
-        currentIndex: _playerService.currentIndex,
-      ),
-    );
+    if (event.song == null) {
+      // Queue was cleared. Use clearCurrentSong: true because copyWith's
+      // `currentSong ?? this.currentSong` means passing null is a no-op.
+      emit(
+        state.copyWith(
+          clearCurrentSong: true,
+          status: PlayerStatus.stopped,
+          queue: _playerService.queue,
+          currentIndex: _playerService.currentIndex,
+        ),
+      );
+    } else {
+      emit(
+        state.copyWith(
+          currentSong: event.song,
+          queue: _playerService.queue,
+          currentIndex: _playerService.currentIndex,
+        ),
+      );
+    }
   }
 
   /// Called when the app returns to the foreground. Asks the service to

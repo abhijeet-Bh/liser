@@ -665,6 +665,9 @@ class _AllTracksPageState extends State<AllTracksPage> {
                                   
                                   final songIndex = index ~/ 2;
                                   final song = filteredSongs[songIndex];
+                                  // Captured from the Builder inside the Slidable so
+                                  // confirmDismiss can close the pane after acting.
+                                  SlidableController? slidableController;
 
                                   return Slidable(
                                     key: ValueKey(song.id),
@@ -673,11 +676,13 @@ class _AllTracksPageState extends State<AllTracksPage> {
                                       // Auto-trigger when swiped past 50% of the item width.
                                       dismissible: DismissiblePane(
                                         dismissThreshold: 0.5,
-                                        onDismissed: () {}, // action fired in confirmDismiss
+                                        onDismissed: () {},
                                         confirmDismiss: () async {
                                           context.read<PlayerBloc>().add(AddSongToEnd(song));
                                           AppSnackBar.show(context, '${song.title} added to queue', type: SnackBarType.success);
-                                          return false; // Keep item in list, just close pane.
+                                          // Snap closed instead of staying in the open state.
+                                          Future.microtask(() => slidableController?.close());
+                                          return false;
                                         },
                                       ),
                                       children: [
@@ -715,6 +720,9 @@ class _AllTracksPageState extends State<AllTracksPage> {
                                     ),
                                       child: Builder(
                                         builder: (context) {
+                                          // Capture the controller so the DismissiblePane
+                                          // confirmDismiss can close it programmatically.
+                                          slidableController = Slidable.of(context);
                                           Widget listItem = Material(
                                             color: Colors.transparent,
                                             child: InkWell(

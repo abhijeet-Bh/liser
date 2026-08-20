@@ -271,7 +271,13 @@ class AudioPlayerService {
   }
 
   Future<void> addNext(Song song) async {
-    if (_playlist == null) return;
+    // If there's no active playlist or the queue is empty (e.g. after a clear
+    // or on first launch), bootstrap a fresh queue so the player UI appears.
+    if (_playlist == null || _queue.isEmpty) {
+      await loadQueue([song], initialIndex: 0);
+      // Do NOT auto-play — user didn't tap Play.
+      return;
+    }
     final insertIndex = currentIndex + 1;
     _queue.insert(insertIndex, song);
     final audioSource = AudioSource.file(
@@ -290,7 +296,13 @@ class AudioPlayerService {
   }
 
   Future<void> addToEnd(Song song) async {
-    if (_playlist == null) return;
+    // If there's no active playlist or the queue is empty (e.g. after a clear
+    // or on first launch), bootstrap a fresh queue so the player UI appears.
+    if (_playlist == null || _queue.isEmpty) {
+      await loadQueue([song], initialIndex: 0);
+      // Do NOT auto-play — user didn't tap Play.
+      return;
+    }
     _queue.add(song);
     final audioSource = AudioSource.file(
       song.path,
