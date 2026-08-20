@@ -95,6 +95,7 @@ class _ProfilePageState extends State<ProfilePage> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
+      extendBody: true,
       backgroundColor: Colors.transparent,
       extendBodyBehindAppBar: true,
       appBar: AppBar(
@@ -112,6 +113,7 @@ class _ProfilePageState extends State<ProfilePage> {
       ),
       body: FrostedBackground(
         child: SafeArea(
+          bottom: false,
           child: BlocBuilder<AppBloc, AppState>(
             builder: (context, state) {
               final settings = state.settings;

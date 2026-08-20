@@ -51,6 +51,7 @@ class SettingsPage extends StatelessWidget {
         }
       },
       child: Scaffold(
+        extendBody: true,
         extendBodyBehindAppBar: true,
         appBar: AppBar(
           backgroundColor: Colors.transparent,
@@ -60,8 +61,9 @@ class SettingsPage extends StatelessWidget {
         ),
         body: FrostedBackground(
           child: SafeArea(
-          child: ListView(
-            padding: LayoutConstants.standardListPadding,
+            bottom: false,
+            child: ListView(
+              padding: LayoutConstants.standardListPadding,
             children: [
               _buildSectionHeader(context, 'Library Management'),
               ListTile(

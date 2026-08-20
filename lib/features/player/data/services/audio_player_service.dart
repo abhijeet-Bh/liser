@@ -63,9 +63,17 @@ class AudioPlayerService {
 
   Song? _currentSong;
 
+  // Flag to indicate if a sequence change was explicitly requested by our code.
+  bool _manualIndexChange = false;
+
   List<Song> _queue = [];
 
   StreamSubscription<int?>? _indexSubscription;
+  StreamSubscription<PlayerState>? _playerStateInternalSubscription;
+
+  /// Debounce timer used to ignore phantom index-0 events emitted by
+  /// just_audio immediately after a pause or lock-screen seek.
+  Timer? _phantomDebounceTimer;
 
   AudioPlayer get player => _player;
 
@@ -108,6 +116,7 @@ class AudioPlayerService {
               album: song.album,
               title: song.title,
               artist: song.artist,
+              duration: song.duration > 0 ? Duration(milliseconds: song.duration) : null,
               artUri: song.artworkPath != null ? Uri.file(song.artworkPath!) : null,
             ),
           ),
@@ -121,27 +130,35 @@ class AudioPlayerService {
     _currentSongController.add(_currentSong);
 
     await _indexSubscription?.cancel();
+    // Cancel previous playerStateStream listener to prevent subscription leaks
+    // (loadQueue can be called multiple times, e.g. on every PlaySong event).
+    await _playerStateInternalSubscription?.cancel();
 
     _indexSubscription = _player.currentIndexStream.listen((index) {
       if (index == null) return;
-
       if (index < 0 || index >= _queue.length) return;
 
-      // Workaround for just_audio emitting phantom index 0 on pause
-      if (index == 0 && _currentSong != null && _queue.indexOf(_currentSong!) > 0 && !_player.playing) {
-        if (_player.position.inMilliseconds > 500) {
-          return; // Ignore phantom 0
+      if (index == 0 && _currentSong != null && _queue.indexOf(_currentSong!) > 0) {
+        if (!_player.playing && !_manualIndexChange) {
+          // If we hit index 0 while paused without a manual seek, it's almost
+          // certainly the iOS/just_audio_background lock screen desync bug.
+          // The addition of duration to MediaItem usually prevents this, but
+          // we ignore it here just to be absolutely safe.
+          return;
         }
       }
+      
+      _manualIndexChange = false;
 
+      // For any other index change (including index-0 while playing) apply at once.
       _currentSong = _queue[index];
-
       _currentSongController.add(_currentSong);
       _saveQueueState();
     });
-    
-    // Also save state on position change sparingly or pause
-    _player.playerStateStream.listen((state) {
+
+    // Save state on pause. Store the subscription so it can be cancelled on
+    // the next loadQueue call (prevents one listener per queue load).
+    _playerStateInternalSubscription = _player.playerStateStream.listen((state) {
       if (!state.playing) {
         _saveQueueState();
       }
@@ -170,15 +187,15 @@ class AudioPlayerService {
 
   Future<void> next() async {
     if (_player.hasNext) {
+      _manualIndexChange = true;
       await _player.seekToNext();
     }
   }
 
   Future<void> previous() async {
     if (_player.hasPrevious) {
+      _manualIndexChange = true;
       await _player.seekToPrevious();
-    } else {
-      await seek(Duration.zero);
     }
   }
 
@@ -240,16 +257,21 @@ class AudioPlayerService {
 
   Future<void> clearQueue() async {
     if (_playlist == null) return;
-    final index = currentIndex;
-    if (index >= _queue.length - 1) return;
-    _queue.removeRange(index + 1, _queue.length);
-    await _playlist!.removeRange(index + 1, _playlist!.length);
-    _currentSongController.add(_currentSong);
+    await _player.stop();
+    _queue.clear();
+    await _playlist!.clear();
+    _currentSongController.add(null);
     _saveQueueState();
   }
 
   Future<void> addNext(Song song) async {
-    if (_playlist == null) return;
+    // If there's no active playlist or the queue is empty (e.g. after a clear
+    // or on first launch), bootstrap a fresh queue so the player UI appears.
+    if (_playlist == null || _queue.isEmpty) {
+      await loadQueue([song], initialIndex: 0);
+      // Do NOT auto-play — user didn't tap Play.
+      return;
+    }
     final insertIndex = currentIndex + 1;
     _queue.insert(insertIndex, song);
     final audioSource = AudioSource.file(
@@ -259,6 +281,7 @@ class AudioPlayerService {
         album: song.album,
         title: song.title,
         artist: song.artist,
+        duration: song.duration > 0 ? Duration(milliseconds: song.duration) : null,
         artUri: song.artworkPath != null ? Uri.file(song.artworkPath!) : null,
       ),
     );
@@ -268,7 +291,13 @@ class AudioPlayerService {
   }
 
   Future<void> addToEnd(Song song) async {
-    if (_playlist == null) return;
+    // If there's no active playlist or the queue is empty (e.g. after a clear
+    // or on first launch), bootstrap a fresh queue so the player UI appears.
+    if (_playlist == null || _queue.isEmpty) {
+      await loadQueue([song], initialIndex: 0);
+      // Do NOT auto-play — user didn't tap Play.
+      return;
+    }
     _queue.add(song);
     final audioSource = AudioSource.file(
       song.path,
@@ -277,6 +306,7 @@ class AudioPlayerService {
         album: song.album,
         title: song.title,
         artist: song.artist,
+        duration: song.duration > 0 ? Duration(milliseconds: song.duration) : null,
         artUri: song.artworkPath != null ? Uri.file(song.artworkPath!) : null,
       ),
     );
@@ -285,8 +315,33 @@ class AudioPlayerService {
     _saveQueueState();
   }
 
+  Future<void> removeFromQueue(int index) async {
+    if (_playlist == null) return;
+    if (index < 0 || index >= _queue.length) return;
+    // Don't allow removing the currently playing song.
+    if (index == currentIndex) return;
+    _queue.removeAt(index);
+    await _playlist!.removeAt(index);
+    _currentSongController.add(_currentSong);
+    _saveQueueState();
+  }
+
+  /// Force-emit the current song state so that the UI can re-sync after the
+  /// app returns from the background (where the OS media session may have
+  /// changed the track without Flutter receiving a stream event).
+  void syncState() {
+    final index = _player.currentIndex;
+    if (index != null && index >= 0 && index < _queue.length) {
+      _phantomDebounceTimer?.cancel();
+      _currentSong = _queue[index];
+      _currentSongController.add(_currentSong);
+    }
+  }
+
   Future<void> dispose() async {
+    _phantomDebounceTimer?.cancel();
     await _indexSubscription?.cancel();
+    await _playerStateInternalSubscription?.cancel();
 
     await _player.dispose();
 

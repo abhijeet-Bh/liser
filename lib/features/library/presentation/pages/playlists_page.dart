@@ -18,6 +18,7 @@ class PlaylistsPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBody: true,
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -27,6 +28,7 @@ class PlaylistsPage extends StatelessWidget {
       ),
       body: FrostedBackground(
         child: SafeArea(
+          bottom: false,
           child: BlocBuilder<LibraryBloc, LibraryState>(
             builder: (context, state) {
               if (state.status == LibraryStatus.loading) {

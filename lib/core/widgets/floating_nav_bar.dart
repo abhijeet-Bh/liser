@@ -6,6 +6,7 @@ import 'package:liser/core/constants/app_constants.dart';
 class FloatingNavBar extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
+  final VoidCallback? onRestore;
   final double shrinkProgress;
   final Color activeColor;
 
@@ -13,6 +14,7 @@ class FloatingNavBar extends StatelessWidget {
     super.key,
     required this.currentIndex,
     required this.onTap,
+    this.onRestore,
     required this.shrinkProgress,
     this.activeColor = const Color(0xFFEC4899), // Hot Pink accent
   });
@@ -31,21 +33,21 @@ class FloatingNavBar extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final maxWidth = constraints.maxWidth;
-        final minWidth = 60.0;
+        final minWidth = 66.0;
         final currentWidth = minWidth + (maxWidth - minWidth) * (1 - clampedShrink);
 
         return ClipRRect(
-          borderRadius: BorderRadius.circular(30),
+          borderRadius: BorderRadius.circular(33),
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
             child: Container(
-              height: 60,
+              height: 66,
               width: currentWidth,
               decoration: BoxDecoration(
-                color: theme.colorScheme.primary.withValues(alpha: theme.brightness == Brightness.light ? 0.08 : 0.05),
-                borderRadius: BorderRadius.circular(30),
+                color: theme.colorScheme.surface.withValues(alpha: 0.75),
+                borderRadius: BorderRadius.circular(33),
                 border: Border.all(
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.05),
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.15),
                   width: 0.5,
                 ),
               ),
@@ -59,16 +61,16 @@ class FloatingNavBar extends StatelessWidget {
                         curve: Curves.easeOutCubic,
                         builder: (context, animatedIndex, child) {
                           return Positioned(
-                            left: ((currentWidth / 3) * animatedIndex + 8) * (1 - clampedShrink) + 6 * clampedShrink,
-                            width: ((currentWidth / 3) - 16) * (1 - clampedShrink) + (60.0 - 12) * clampedShrink, 
-                            top: 6,
-                            bottom: 6,
+                            left: ((currentWidth / 3) * animatedIndex + 12) * (1 - clampedShrink) + 10 * clampedShrink,
+                            width: ((currentWidth / 3) - 24) * (1 - clampedShrink) + (66.0 - 20) * clampedShrink, 
+                            top: 10,
+                            bottom: 10,
                             child: Opacity(
                               opacity: (1 - clampedShrink).clamp(0.0, 1.0),
                               child: Container(
                                 decoration: BoxDecoration(
-                                  color: activeColor.withValues(alpha: 0.15),
-                                  borderRadius: BorderRadius.circular(26),
+                                  color: activeColor,
+                                  borderRadius: BorderRadius.circular(23),
                                 ),
                               ),
                             ),
@@ -90,7 +92,7 @@ class FloatingNavBar extends StatelessWidget {
                       
                       final currentItemLeft = isActive ? leftWhenFull * (1 - clampedShrink) : leftWhenFull;
                       final currentItemWidth = isActive 
-                        ? widthWhenFull * (1 - clampedShrink) + 60.0 * clampedShrink
+                        ? widthWhenFull * (1 - clampedShrink) + 66.0 * clampedShrink
                         : widthWhenFull;
 
                       return Positioned(
@@ -103,7 +105,10 @@ class FloatingNavBar extends StatelessWidget {
                           child: GestureDetector(
                             behavior: HitTestBehavior.opaque,
                             onTap: () {
-                              if (shrinkProgress > 0.5) return; 
+                              if (shrinkProgress > 0.5) {
+                                onRestore?.call();
+                                return;
+                              }
                               onTap(index);
                             },
                             child: Column(
@@ -111,10 +116,9 @@ class FloatingNavBar extends StatelessWidget {
                               children: [
                                 Icon(
                                   isActive ? item.activeIcon : item.icon,
-                                  color: isActive ? activeColor : theme.colorScheme.onSurface.withValues(alpha: 0.5),
-                                  size: 24,
+                                  color: isActive ? Colors.white : theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                                  size: 20,
                                 ),
-                                SizedBox(height: 2 * (1 - clampedShrink)),
                                 ClipRect(
                                   child: Align(
                                     alignment: Alignment.topCenter,
@@ -124,9 +128,9 @@ class FloatingNavBar extends StatelessWidget {
                                       child: Text(
                                         item.label,
                                         style: TextStyle(
-                                          fontSize: 10,
+                                          fontSize: 9,
                                           fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
-                                          color: isActive ? activeColor : theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                                          color: isActive ? Colors.white : theme.colorScheme.onSurface.withValues(alpha: 0.5),
                                         ),
                                       ),
                                     ),

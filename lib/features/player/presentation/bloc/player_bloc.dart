@@ -49,6 +49,7 @@ class PlayerBloc extends Bloc<PlayerEvent, PlayerUiState> {
     on<ClearQueue>(_onClearQueue);
     on<AddSongNext>(_onAddSongNext);
     on<AddSongToEnd>(_onAddSongToEnd);
+    on<RemoveFromQueue>(_onRemoveFromQueue);
     on<SetVolume>(_onSetVolume);
     on<IncreaseVolume>(_onIncreaseVolume);
     on<DecreaseVolume>(_onDecreaseVolume);
@@ -59,6 +60,7 @@ class PlayerBloc extends Bloc<PlayerEvent, PlayerUiState> {
     on<_DurationChanged>(_onDurationChanged);
     on<_CurrentSongChanged>(_onCurrentSongChanged);
     on<_NativeVolumeChanged>(_onNativeVolumeChanged);
+    on<_SyncPlayerState>(_onSyncPlayerState);
 
     _initVolume();
 
@@ -97,8 +99,8 @@ class PlayerBloc extends Bloc<PlayerEvent, PlayerUiState> {
   late final StreamSubscription<Song?> _currentSongSubscription;
   late final StreamSubscription<double> _volumeSubscription;
   Future<void> _onPlaySong(PlaySong event, Emitter<PlayerUiState> emit) async {
-    await _playerService.playSong(event.queue, event.song);
-
+    // Optimistic UI update immediately so ExpandablePlayer shows correct info 
+    // while the async loadQueue operation happens.
     emit(
       state.copyWith(
         currentSong: event.song,
@@ -106,6 +108,8 @@ class PlayerBloc extends Bloc<PlayerEvent, PlayerUiState> {
         currentIndex: event.queue.indexWhere((e) => e.id == event.song.id),
       ),
     );
+
+    await _playerService.playSong(event.queue, event.song);
   }
 
   Future<void> _onTogglePlayPause(
@@ -121,8 +125,9 @@ class PlayerBloc extends Bloc<PlayerEvent, PlayerUiState> {
 
   Future<void> _onNextSong(NextSong event, Emitter<PlayerUiState> emit) async {
     await _playerService.next();
-
-    emit(state.copyWith(currentIndex: _playerService.currentIndex));
+    // Do NOT read currentIndex here — just_audio's index stream hasn't settled
+    // yet. The _CurrentSongChanged event (driven by currentSongStream) will
+    // update currentIndex once the seek completes.
   }
 
   Future<void> _onPreviousSong(
@@ -130,8 +135,7 @@ class PlayerBloc extends Bloc<PlayerEvent, PlayerUiState> {
     Emitter<PlayerUiState> emit,
   ) async {
     await _playerService.previous();
-
-    emit(state.copyWith(currentIndex: _playerService.currentIndex));
+    // Same reasoning — let the stream drive the update, not a synchronous read.
   }
 
   Future<void> _onSeekToPosition(
@@ -214,6 +218,19 @@ class PlayerBloc extends Bloc<PlayerEvent, PlayerUiState> {
     await _playerService.addToEnd(event.song);
   }
 
+  Future<void> _onRemoveFromQueue(
+    RemoveFromQueue event,
+    Emitter<PlayerUiState> emit,
+  ) async {
+    await _playerService.removeFromQueue(event.index);
+    emit(
+      state.copyWith(
+        queue: _playerService.queue,
+        currentIndex: _playerService.currentIndex,
+      ),
+    );
+  }
+
   Future<void> _onSetVolume(
     SetVolume event,
     Emitter<PlayerUiState> emit,
@@ -293,14 +310,54 @@ class PlayerBloc extends Bloc<PlayerEvent, PlayerUiState> {
         // Ignore error if it fails
       }
     }
+    if (event.song == null) {
+      // Queue was cleared. Use clearCurrentSong: true because copyWith's
+      // `currentSong ?? this.currentSong` means passing null is a no-op.
+      emit(
+        state.copyWith(
+          clearCurrentSong: true,
+          status: PlayerStatus.stopped,
+          queue: _playerService.queue,
+          currentIndex: _playerService.currentIndex,
+        ),
+      );
+    } else {
+      emit(
+        state.copyWith(
+          currentSong: event.song,
+          queue: _playerService.queue,
+          currentIndex: _playerService.currentIndex,
+        ),
+      );
+    }
+  }
+
+  /// Called when the app returns to the foreground. Asks the service to
+  /// re-emit its current song so that any track changes made via the OS
+  /// media session (lock-screen / notification controls) are reflected in
+  /// the UI immediately.
+  void _onSyncPlayerState(
+    _SyncPlayerState event,
+    Emitter<PlayerUiState> emit,
+  ) {
+    _playerService.syncState();
+    // Also immediately emit a state refresh from what we know right now,
+    // in case the stream event arrives asynchronously.
     emit(
       state.copyWith(
-        currentSong: event.song,
+        currentSong: _playerService.currentSong,
         queue: _playerService.queue,
         currentIndex: _playerService.currentIndex,
+        shuffleEnabled: _playerService.shuffleEnabled,
+        repeatMode: _playerService.repeatMode,
       ),
     );
   }
+
+  /// Public helper for the UI to trigger a state re-sync when the app
+  /// returns from the background. Widgets cannot dispatch [_SyncPlayerState]
+  /// directly because it is a part-private class.
+  void requestSync() => add(const _SyncPlayerState());
 
   @override
   Future<void> close() async {

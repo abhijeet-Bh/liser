@@ -15,6 +15,7 @@ class LibraryPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBody: true,
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
@@ -24,6 +25,7 @@ class LibraryPage extends StatelessWidget {
       ),
       body: FrostedBackground(
         child: SafeArea(
+          bottom: false,
           child: BlocBuilder<LibraryBloc, LibraryState>(
             builder: (context, state) {
               final songs = state.songs;

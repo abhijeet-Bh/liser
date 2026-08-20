@@ -14,8 +14,9 @@ import 'package:liser/app/di/service_locator.dart';
 import 'package:liser/features/library/data/repositories/library_repository.dart';
 import 'package:liser/core/constants/layout_constants.dart';
 
-import 'package:liser/core/utils/app_toast.dart';
+import 'package:liser/core/utils/app_snackbar.dart';
 import 'package:liser/core/constants/app_constants.dart';
+import 'package:liser/features/library/presentation/pages/song_info_page.dart';
 
 class AllTracksPage extends StatefulWidget {
   final String? artistFilter;
@@ -30,7 +31,332 @@ enum TrackSortOption { newest, mostPlayed, titleAsc, titleDesc }
 class _AllTracksPageState extends State<AllTracksPage> {
   String _searchQuery = '';
   TrackSortOption _sortOption = TrackSortOption.newest;
+  bool _isSelectionMode = false;
+  final Set<String> _selectedSongIds = {};
 
+  Widget _buildSearchBar() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      child: Row(
+        children: [
+          Expanded(
+            child: CupertinoSearchTextField(
+              placeholder: 'Search songs or artists...',
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+              backgroundColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
+              itemColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+              onChanged: (value) {
+                setState(() {
+                  _searchQuery = value;
+                });
+              },
+              onSubmitted: (_) {
+                FocusManager.instance.primaryFocus?.unfocus();
+              },
+            ),
+          ),
+          const SizedBox(width: 8),
+          Container(
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
+              borderRadius: AppRadius.circularSm,
+            ),
+            child: IconButton(
+              icon: const Icon(CupertinoIcons.slider_horizontal_3, size: 20),
+              color: Theme.of(context).colorScheme.onSurface,
+              onPressed: () => _showSortOptions(context),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSelectionBar() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      child: Row(
+        children: [
+          IconButton(
+            icon: const Icon(CupertinoIcons.xmark),
+            color: Theme.of(context).colorScheme.onSurface,
+            onPressed: () {
+              setState(() {
+                _isSelectionMode = false;
+                _selectedSongIds.clear();
+              });
+            },
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              '${_selectedSongIds.length} Selected',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
+            ),
+          ),
+          Container(
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.error.withValues(alpha: 0.1),
+              borderRadius: AppRadius.circularSm,
+            ),
+            child: IconButton(
+              icon: Icon(CupertinoIcons.trash, size: 20, color: Theme.of(context).colorScheme.error),
+              onPressed: () => _showDeleteConfirmationDialog(context),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDeleteConfirmationDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.5),
+      builder: (context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          child: ClipRRect(
+            borderRadius: AppRadius.circularXl,
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+              child: Container(
+                padding: AppPadding.allXl,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.75),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: AppPadding.allLg,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.error.withValues(alpha: 0.15),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(CupertinoIcons.trash, color: Theme.of(context).colorScheme.error, size: 32),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Delete Songs',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Are you sure you want to delete ${_selectedSongIds.length} selected songs?',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextButton(
+                            onPressed: () => Navigator.pop(context),
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(borderRadius: AppRadius.circularLg),
+                            ),
+                            child: Text(
+                              'Cancel',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: FilledButton(
+                            onPressed: () {
+                              Navigator.pop(context);
+                              _deleteSelectedSongs();
+                            },
+                            style: FilledButton.styleFrom(
+                              backgroundColor: Theme.of(context).colorScheme.error,
+                              foregroundColor: Theme.of(context).colorScheme.onError,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(borderRadius: AppRadius.circularLg),
+                            ),
+                            child: const Text('Delete', style: TextStyle(fontWeight: FontWeight.w600)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _deleteSelectedSongs() {
+    final bloc = context.read<LibraryBloc>();
+    final songs = bloc.state.songs.where((s) => _selectedSongIds.contains(s.id)).toList();
+    for (final song in songs) {
+      bloc.add(RemoveSong(song));
+    }
+    setState(() {
+      _isSelectionMode = false;
+      _selectedSongIds.clear();
+    });
+    AppSnackBar.show(context, '${songs.length} songs deleted', type: SnackBarType.error);
+  }
+
+  Future<bool> _confirmSingleDelete(Song song) async {
+    final result = await showDialog<bool>(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.5),
+      builder: (context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          child: ClipRRect(
+            borderRadius: AppRadius.circularXl,
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+              child: Container(
+                padding: AppPadding.allXl,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.75),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: AppPadding.allLg,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.error.withValues(alpha: 0.15),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(CupertinoIcons.trash, color: Theme.of(context).colorScheme.error, size: 32),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Delete Song',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Are you sure you want to delete "${song.title}"?',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextButton(
+                            onPressed: () => Navigator.pop(context, false),
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(borderRadius: AppRadius.circularLg),
+                            ),
+                            child: Text(
+                              'Cancel',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: FilledButton(
+                            onPressed: () => Navigator.pop(context, true),
+                            style: FilledButton.styleFrom(
+                              backgroundColor: Theme.of(context).colorScheme.error,
+                              foregroundColor: Theme.of(context).colorScheme.onError,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(borderRadius: AppRadius.circularLg),
+                            ),
+                            child: const Text('Delete', style: TextStyle(fontWeight: FontWeight.w600)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+    return result ?? false;
+  }
+
+
+
+  void _showSongQuickActions(BuildContext context, Song song) {
+    showCupertinoModalPopup(
+      context: context,
+      builder: (context) => CupertinoActionSheet(
+        title: Text(song.title),
+        message: Text(song.artist),
+        actions: [
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Navigator.pop(context);
+              setState(() {
+                if (!_isSelectionMode) {
+                  _isSelectionMode = true;
+                }
+                _selectedSongIds.add(song.id);
+              });
+            },
+            child: const Text('Select'),
+          ),
+          CupertinoActionSheetAction(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => SongInfoPage(song: song),
+                ),
+              );
+            },
+            child: const Text('Song Info'),
+          ),
+        ],
+        cancelButton: CupertinoActionSheetAction(
+          onPressed: () {
+            Navigator.pop(context);
+          },
+          isDefaultAction: true,
+          child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.w600)),
+        ),
+      ),
+    );
+  }
 
   void _showSortOptions(BuildContext context) {
     showModalBottomSheet(
@@ -330,6 +656,7 @@ class _AllTracksPageState extends State<AllTracksPage> {
     return FrostedBackground(
       child: Scaffold(
         backgroundColor: Colors.transparent,
+        extendBody: true,
         extendBodyBehindAppBar: false,
         appBar: AppBar(
           backgroundColor: Colors.transparent,
@@ -358,42 +685,7 @@ class _AllTracksPageState extends State<AllTracksPage> {
           centerTitle: true,
           bottom: PreferredSize(
             preferredSize: const Size.fromHeight(60),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: CupertinoSearchTextField(
-                      placeholder: 'Search songs or artists...',
-                      style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
-                      backgroundColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
-                      itemColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                      onChanged: (value) {
-                        setState(() {
-                          _searchQuery = value;
-                        });
-                      },
-                      onSubmitted: (_) {
-                        FocusManager.instance.primaryFocus?.unfocus();
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.1),
-                      borderRadius: AppRadius.circularSm,
-                    ),
-                    child: IconButton(
-                      icon: const Icon(CupertinoIcons.slider_horizontal_3, size: 20),
-                      color: Theme.of(context).colorScheme.onSurface,
-                      onPressed: () => _showSortOptions(context),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            child: _isSelectionMode ? _buildSelectionBar() : _buildSearchBar(),
           ),
         ),
         body: GestureDetector(
@@ -466,16 +758,31 @@ class _AllTracksPageState extends State<AllTracksPage> {
                                   
                                   final songIndex = index ~/ 2;
                                   final song = filteredSongs[songIndex];
+                                  // Captured from the Builder inside the Slidable so
+                                  // confirmDismiss can close the pane after acting.
+                                  SlidableController? slidableController;
 
                                   return Slidable(
                                     key: ValueKey(song.id),
                                     startActionPane: ActionPane(
                                       motion: const StretchMotion(),
+                                      // Auto-trigger when swiped past 50% of the item width.
+                                      dismissible: DismissiblePane(
+                                        dismissThreshold: 0.5,
+                                        onDismissed: () {},
+                                        confirmDismiss: () async {
+                                          context.read<PlayerBloc>().add(AddSongToEnd(song));
+                                          AppSnackBar.show(context, '${song.title} added to queue', type: SnackBarType.success);
+                                          // Snap closed instead of staying in the open state.
+                                          Future.microtask(() => slidableController?.close());
+                                          return false;
+                                        },
+                                      ),
                                       children: [
                                         SlidableAction(
                                           onPressed: (context) {
                                             context.read<PlayerBloc>().add(AddSongToEnd(song));
-                                            AppToast.show(context, '${song.title} added to queue');
+                                            AppSnackBar.show(context, '${song.title} added to queue', type: SnackBarType.success);
                                           },
                                           backgroundColor: AppColors.primary,
                                           foregroundColor: Colors.white,
@@ -485,11 +792,31 @@ class _AllTracksPageState extends State<AllTracksPage> {
                                     ),
                                     endActionPane: ActionPane(
                                       motion: const StretchMotion(),
+                                      // Auto-trigger delete when swiped past 50%.
+                                      dismissible: DismissiblePane(
+                                        dismissThreshold: 0.5,
+                                        onDismissed: () {},
+                                        confirmDismiss: () async {
+                                          final confirm = await _confirmSingleDelete(song);
+                                          if (confirm) {
+                                            if (context.mounted) {
+                                              context.read<LibraryBloc>().add(RemoveSong(song));
+                                            }
+                                            return true;
+                                          }
+                                          Future.microtask(() => slidableController?.close());
+                                          return false;
+                                        },
+                                      ),
                                       children: [
                                         SlidableAction(
                                           onPressed: (slidableContext) async {
-                                            final bloc = context.read<LibraryBloc>();
-                                            bloc.add(RemoveSong(song));
+                                            final confirm = await _confirmSingleDelete(song);
+                                            if (confirm) {
+                                              if (context.mounted) {
+                                                context.read<LibraryBloc>().add(RemoveSong(song));
+                                              }
+                                            }
                                           },
                                           backgroundColor: Colors.red,
                                           foregroundColor: Colors.white,
@@ -497,17 +824,55 @@ class _AllTracksPageState extends State<AllTracksPage> {
                                         ),
                                       ],
                                     ),
-                                      child: InkWell(
-                                        onTap: () {
-                                          FocusManager.instance.primaryFocus?.unfocus();
-                                          context.read<PlayerBloc>().add(
-                                                PlaySong(song: song, queue: filteredSongs),
-                                              );
-                                        },
-                                        child: Padding(
-                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                        child: Row(
+                                      child: Builder(
+                                        builder: (context) {
+                                          // Capture the controller so the DismissiblePane
+                                          // confirmDismiss can close it programmatically.
+                                          slidableController = Slidable.of(context);
+                                          Widget listItem = Material(
+                                            color: Colors.transparent,
+                                            child: InkWell(
+                                              onLongPress: Platform.isIOS ? null : () => _showSongQuickActions(context, song),
+                                              onTap: () {
+                                                if (_isSelectionMode) {
+                                                  setState(() {
+                                                    if (_selectedSongIds.contains(song.id)) {
+                                                      _selectedSongIds.remove(song.id);
+                                                      if (_selectedSongIds.isEmpty) {
+                                                        _isSelectionMode = false;
+                                                      }
+                                                    } else {
+                                                      _selectedSongIds.add(song.id);
+                                                    }
+                                                  });
+                                                } else {
+                                                  FocusManager.instance.primaryFocus?.unfocus();
+                                                  context.read<PlayerBloc>().add(
+                                                        PlaySong(song: song, queue: filteredSongs),
+                                                      );
+                                                }
+                                              },
+                                              child: SizedBox(
+                                                width: MediaQuery.of(context).size.width,
+                                                child: AnimatedContainer(
+                                                  duration: AppDurations.fast,
+                                          color: _selectedSongIds.contains(song.id) ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.1) : Colors.transparent,
+                                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                          child: Row(
                                           children: [
+                                            if (_isSelectionMode)
+                                              Padding(
+                                                padding: const EdgeInsets.only(right: 12),
+                                                child: Icon(
+                                                  _selectedSongIds.contains(song.id) 
+                                                    ? CupertinoIcons.checkmark_circle_fill 
+                                                    : CupertinoIcons.circle,
+                                                  color: _selectedSongIds.contains(song.id)
+                                                    ? Theme.of(context).colorScheme.primary 
+                                                    : Theme.of(context).dividerColor,
+                                                  size: 22,
+                                                ),
+                                              ),
                                             Stack(
                                               children: [
                                                 ClipRRect(
@@ -625,7 +990,67 @@ class _AllTracksPageState extends State<AllTracksPage> {
                                         ),
                                       ),
                                     ),
+                                  ),
+                                );
+
+                                if (Platform.isIOS) {
+                                  return CupertinoContextMenu.builder(
+                                    builder: (context, animation) {
+                                      return FittedBox(
+                                        fit: BoxFit.cover,
+                                        child: ClipRRect(
+                                          borderRadius: BorderRadius.circular(16 * animation.value),
+                                          child: Container(
+                                            color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: animation.value),
+                                            child: listItem,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                    actions: [
+                                      Builder(
+                                        builder: (actionContext) => CupertinoContextMenuAction(
+                                          onPressed: () {
+                                            Navigator.pop(actionContext);
+                                            Future.delayed(const Duration(milliseconds: 300), () {
+                                              if (mounted) {
+                                                setState(() {
+                                                  if (!_isSelectionMode) {
+                                                    _isSelectionMode = true;
+                                                  }
+                                                  _selectedSongIds.add(song.id);
+                                                });
+                                              }
+                                            });
+                                          },
+                                          child: const Text('Select'),
+                                        ),
+                                      ),
+                                      Builder(
+                                        builder: (actionContext) => CupertinoContextMenuAction(
+                                          onPressed: () {
+                                            Navigator.pop(actionContext);
+                                            Future.delayed(const Duration(milliseconds: 300), () {
+                                              if (context.mounted) {
+                                                Navigator.push(
+                                                  context,
+                                                  MaterialPageRoute(
+                                                    builder: (context) => SongInfoPage(song: song),
+                                                  ),
+                                                );
+                                              }
+                                            });
+                                          },
+                                          child: const Text('Song Info'),
+                                        ),
+                                      ),
+                                    ],
                                   );
+                                }
+                                return listItem;
+                              },
+                            ),
+                          );
                                 },
                                 childCount: filteredSongs.isEmpty ? 0 : filteredSongs.length * 2 - 1,
                               ),

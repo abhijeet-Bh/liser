@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/physics.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:liser/features/player/presentation/bloc/player_bloc.dart';
 import 'package:liser/features/library/data/models/song.dart';
@@ -16,7 +17,7 @@ import 'package:liser/features/library/data/repositories/library_repository.dart
 
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
-import 'package:liser/core/utils/app_toast.dart';
+import 'package:liser/core/utils/app_snackbar.dart';
 import 'package:liser/core/constants/app_constants.dart';
 
 class ExpandablePlayer extends StatefulWidget {
@@ -42,7 +43,7 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
   bool _isDragging = false;
   double _dragPosition = 0.0;
   late AnimationController _queueController;
-  final double _miniPlayerHeight = 60.0; // Matched with FloatingNavBar
+  final double _miniPlayerHeight = 66.0; // Matched with FloatingNavBar
   bool _isQueueMode = false;
   DateTime? _lastBackPressTime;
 
@@ -71,6 +72,24 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
     _controller.dispose();
     _queueController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // When the app returns to the foreground, force the bloc to re-sync its
+    // state from the audio service. This catches any track/position changes
+    // that happened via the OS media session (lock screen / notification bar)
+    // while the Flutter UI was suspended in the background.
+    if (state == AppLifecycleState.resumed) {
+      if (mounted) {
+        final bloc = context.read<PlayerBloc>();
+        bloc.requestSync();
+        
+        if (bloc.state.status == PlayerStatus.playing && _controller.value < 0.1) {
+          _controller.animateTo(1.0, curve: Curves.easeOutCubic, duration: AppDurations.fast);
+        }
+      }
+    }
   }
 
   @override
@@ -172,15 +191,27 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
         if (_lastBackPressTime == null ||
             now.difference(_lastBackPressTime!) > const Duration(seconds: 2)) {
           _lastBackPressTime = now;
-          AppToast.show(context, 'Press back again to exit');
+          AppSnackBar.show(context, 'Press back again to exit');
         } else {
           SystemNavigator.pop();
         }
       },
       child: BlocConsumer<PlayerBloc, PlayerUiState>(
-        listenWhen: (prev, curr) => prev.queue != curr.queue || prev.currentIndex != curr.currentIndex,
+        listenWhen: (prev, curr) => 
+            prev.queue != curr.queue || 
+            prev.currentIndex != curr.currentIndex ||
+            prev.currentSong != curr.currentSong,
         listener: (context, state) {
           _optimisticQueue = null;
+          if (state.currentSong == null && _controller.value > 0.0) {
+            _controller.animateTo(0.0, curve: Curves.easeOutCubic, duration: AppDurations.fast);
+            if (_isQueueMode) {
+              setState(() {
+                _isQueueMode = false;
+                _queueController.reverse();
+              });
+            }
+          }
         },
         builder: (context, state) {
           final song = state.currentSong;
@@ -201,14 +232,15 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
                 
                 final shrinkVal = widget.shrinkProgress.value;
                 
-                final minLeftMargin = 16.0 + 60.0 + 16.0; // nav margin + min nav width + gap
+                final minLeftMargin = 16.0 + 66.0 + 16.0; // nav margin + min nav width + gap
                 final defaultMargin = 16.0; // Matches nav bar margin
                 
                 final currentLeftMargin = (defaultMargin + (minLeftMargin - defaultMargin) * shrinkVal) * (1 - curvedValue);
                 final currentRightMargin = defaultMargin * (1 - curvedValue);
                 
-                final bottomWhenNotShrunk = safeAreaBottom + 4.0 + 60.0 + 12.0; 
-                final bottomWhenShrunk = safeAreaBottom + 4.0;
+                final baseBottomMargin = (safeAreaBottom > 20 ? 16.0 : safeAreaBottom + 4.0);
+                final bottomWhenNotShrunk = baseBottomMargin + 66.0 + 8.0; 
+                final bottomWhenShrunk = baseBottomMargin;
                 final currentBottom = bottomWhenShrunk + (bottomWhenNotShrunk - bottomWhenShrunk) * (1 - shrinkVal);
                 
                 final playerBottomPos = currentBottom * (1 - curvedValue);
@@ -238,7 +270,7 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
                                 decoration: BoxDecoration(
                                   // Morph from frosted glass (nav bar style) to solid surface (expanded player style)
                                   color: Color.lerp(
-                                    Theme.of(context).colorScheme.primary.withValues(alpha: Theme.of(context).brightness == Brightness.light ? 0.08 : 0.05),
+                                    Theme.of(context).colorScheme.surface.withValues(alpha: 0.75),
                                     Theme.of(context).colorScheme.surface,
                                     curvedValue,
                                   ),
@@ -259,30 +291,36 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
                                 ),
                                 child: Stack(
                                   children: [
-                                    if (curvedValue > 0) ...[
-                                      if (song.artworkPath != null)
-                                        Positioned.fill(
-                                        child: Opacity(
-                                          opacity: curvedValue,
-                                          child: Image.file(
-                                            File(song.artworkPath!),
-                                            fit: BoxFit.cover,
-                                            errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+                                    if (curvedValue > 0)
+                                      Positioned.fill(
+                                        child: Transform.scale(
+                                          scale: 1.15, // Scale up slightly to completely hide edge bleeding from the blur
+                                          child: Stack(
+                                            fit: StackFit.expand,
+                                            children: [
+                                              if (song.artworkPath != null)
+                                                Opacity(
+                                                  opacity: curvedValue,
+                                                  child: Image.file(
+                                                    File(song.artworkPath!),
+                                                    fit: BoxFit.cover,
+                                                    errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+                                                  ),
+                                                ),
+                                              BackdropFilter(
+                                                filter: ImageFilter.blur(
+                                                  sigmaX: 60.0 * curvedValue + 0.01, 
+                                                  sigmaY: 60.0 * curvedValue + 0.01,
+                                                  tileMode: TileMode.mirror,
+                                                ),
+                                                child: Container(
+                                                  color: (Theme.of(context).brightness == Brightness.dark ? Colors.black : Colors.white).withValues(alpha: 0.7 * curvedValue),
+                                                ),
+                                              ),
+                                            ],
                                           ),
                                         ),
                                       ),
-                                    Positioned.fill(
-                                      child: Opacity(
-                                        opacity: curvedValue,
-                                        child: BackdropFilter(
-                                          filter: ImageFilter.blur(sigmaX: 60.0, sigmaY: 60.0),
-                                          child: Container(
-                                            color: (Theme.of(context).brightness == Brightness.dark ? Colors.black : Colors.white).withValues(alpha: 0.7),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
                                   
                                   if (curvedValue < 1.0)
                                     Opacity(
@@ -324,7 +362,7 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
       children: [
         Expanded(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12.0),
+            padding: const EdgeInsets.only(left: 9.0, right: 12.0),
             child: Row(
               children: [
                 const SizedBox(width: 48, height: 48),
@@ -758,8 +796,8 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
 
   Widget _buildMorphingArtwork(dynamic song, double curvedValue, double screenWidth, double screenHeight) {
     const double miniSize = 48.0;
-    const double miniLeft = 6.0;
-    const double miniTop = 6.0;
+    const double miniLeft = 9.0;
+    const double miniTop = 9.0;
     const double miniRadius = 24.0;
     
     // Normal Full Screen Poster bounds
@@ -1196,70 +1234,93 @@ class _QueueListWidgetState extends State<_QueueListWidget> {
       final isPast = i < widget.currentIndex;
       
       children.add(
-        InkWell(
+        Slidable(
           key: ValueKey(qSong.id + '_$i'),
-          onTap: () {
-            HapticFeedback.lightImpact();
-            context.read<PlayerBloc>().add(PlaySong(song: qSong, queue: queue));
-          },
-          child: Opacity(
-            opacity: isPast ? 0.4 : 1.0,
-            child: SizedBox(
-              height: 64, // explicitly height to match our offset calculation
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                child: Row(
+          // Only upcoming songs can be removed (not past or current).
+          endActionPane: isPast
+              ? null
+              : ActionPane(
+                  motion: const DrawerMotion(),
+                  extentRatio: 0.22,
                   children: [
-                    if (!isPast)
-                      ReorderableDragStartListener(
-                        index: children.length, // use current length as visual index
-                        child: const Padding(
-                          padding: EdgeInsets.only(right: 12.0),
-                          child: Icon(CupertinoIcons.bars, color: Colors.white38),
-                        ),
-                      )
-                    else
-                      const SizedBox(width: 36),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(6),
-                      child: Container(
-                        width: 48,
-                        height: 48,
-                        color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                        child: qSong.artworkPath != null
-                            ? Image.file(
-                                File(qSong.artworkPath!),
-                                fit: BoxFit.cover,
-                              )
-                            : const Icon(CupertinoIcons.music_note, color: Colors.grey),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            qSong.title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            qSong.artist,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: Theme.of(context).textTheme.bodySmall?.color,
-                              fontSize: 13,
-                            ),
-                          ),
-                        ],
-                      ),
+                    SlidableAction(
+                      onPressed: (_) {
+                        HapticFeedback.mediumImpact();
+                        // i is the absolute queue index — must pass it directly.
+                        context.read<PlayerBloc>().add(RemoveFromQueue(i));
+                        AppSnackBar.show(context, '${qSong.title} removed from queue');
+                      },
+                      backgroundColor: Colors.red.shade700,
+                      foregroundColor: Colors.white,
+                      icon: CupertinoIcons.minus_circle_fill,
+                      borderRadius: BorderRadius.circular(12),
                     ),
                   ],
+                ),
+          child: InkWell(
+            onTap: () {
+              HapticFeedback.lightImpact();
+              context.read<PlayerBloc>().add(PlaySong(song: qSong, queue: queue));
+            },
+            child: Opacity(
+              opacity: isPast ? 0.4 : 1.0,
+              child: SizedBox(
+                height: 64, // explicitly height to match our offset calculation
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                  child: Row(
+                    children: [
+                      if (!isPast)
+                        ReorderableDragStartListener(
+                          index: children.length, // use current length as visual index
+                          child: const Padding(
+                            padding: EdgeInsets.only(right: 12.0),
+                            child: Icon(CupertinoIcons.bars, color: Colors.white38),
+                          ),
+                        )
+                      else
+                        const SizedBox(width: 36),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(6),
+                        child: Container(
+                          width: 48,
+                          height: 48,
+                          color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                          child: qSong.artworkPath != null
+                              ? Image.file(
+                                  File(qSong.artworkPath!),
+                                  fit: BoxFit.cover,
+                                )
+                              : const Icon(CupertinoIcons.music_note, color: Colors.grey),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              qSong.title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              qSong.artist,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: Theme.of(context).textTheme.bodySmall?.color,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),

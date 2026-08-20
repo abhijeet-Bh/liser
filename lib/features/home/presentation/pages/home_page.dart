@@ -15,8 +15,11 @@ import 'package:liser/core/services/artist_image_service.dart';
 import 'package:liser/features/profile/presentation/widgets/profile_picture_widget.dart';
 
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
+import 'package:liser/app/theme/app_colors.dart';
 import 'package:liser/core/constants/layout_constants.dart';
 import 'package:liser/core/constants/app_constants.dart';
+import 'package:liser/core/utils/app_snackbar.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -60,6 +63,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     return FrostedBackground(
       child: Scaffold(
         backgroundColor: Colors.transparent,
+        extendBody: true,
         extendBodyBehindAppBar: false,
         appBar: AppBar(
           backgroundColor: Colors.transparent,
@@ -121,6 +125,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
           onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
           behavior: HitTestBehavior.translucent,
           child: SafeArea(
+            bottom: false,
             child: BlocBuilder<LibraryBloc, LibraryState>(
             builder: (context, state) {
               if (state.status == LibraryStatus.loading) {
@@ -245,34 +250,94 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                               
                               final songIndex = index ~/ 2;
                               final song = filteredSongs[songIndex];
-                              return ListTile(
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
-                                leading: ClipRRect(
-                                  borderRadius: AppRadius.circularSm,
-                                  child: Container(
-                                    width: 48,
-                                    height: 48,
-                                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                                    child: song.artworkPath != null && File(song.artworkPath!).existsSync()
-                                        ? Image.file(
-                                            File(song.artworkPath!),
-                                            fit: BoxFit.cover,
-                                          )
-                                        : Center(
-                                            child: Text(
-                                              song.title.isNotEmpty ? song.title[0].toUpperCase() : '?',
-                                              style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.grey),
-                                            ),
-                                          ),
+                              SlidableController? slidableController;
+
+                              return Slidable(
+                                key: ValueKey(song.id),
+                                startActionPane: ActionPane(
+                                  motion: const StretchMotion(),
+                                  // Auto-trigger when swiped past 50% of the item width.
+                                  dismissible: DismissiblePane(
+                                    dismissThreshold: 0.5,
+                                    onDismissed: () {},
+                                    confirmDismiss: () async {
+                                      context.read<PlayerBloc>().add(AddSongToEnd(song));
+                                      AppSnackBar.show(context, '${song.title} added to queue', type: SnackBarType.success);
+                                      Future.microtask(() => slidableController?.close());
+                                      return false;
+                                    },
                                   ),
+                                  children: [
+                                    SlidableAction(
+                                      onPressed: (context) {
+                                        context.read<PlayerBloc>().add(AddSongToEnd(song));
+                                        AppSnackBar.show(context, '${song.title} added to queue', type: SnackBarType.success);
+                                      },
+                                      backgroundColor: AppColors.primary,
+                                      foregroundColor: Colors.white,
+                                      icon: CupertinoIcons.text_insert,
+                                    ),
+                                  ],
                                 ),
-                                title: Text(song.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600)),
-                                subtitle: Text(song.artist, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color)),
-                                trailing: const Icon(CupertinoIcons.play_circle, color: Colors.grey),
-                                onTap: () {
-                                  FocusManager.instance.primaryFocus?.unfocus();
-                                  context.read<PlayerBloc>().add(PlaySong(song: song, queue: filteredSongs));
-                                },
+                                endActionPane: ActionPane(
+                                  motion: const StretchMotion(),
+                                  // Auto-trigger when swiped past 50% of the item width.
+                                  dismissible: DismissiblePane(
+                                    dismissThreshold: 0.5,
+                                    onDismissed: () {},
+                                    confirmDismiss: () async {
+                                      context.read<PlayerBloc>().add(AddSongNext(song));
+                                      AppSnackBar.show(context, '${song.title} plays next', type: SnackBarType.success);
+                                      Future.microtask(() => slidableController?.close());
+                                      return false;
+                                    },
+                                  ),
+                                  children: [
+                                    SlidableAction(
+                                      onPressed: (context) {
+                                        context.read<PlayerBloc>().add(AddSongNext(song));
+                                        AppSnackBar.show(context, '${song.title} plays next', type: SnackBarType.success);
+                                      },
+                                      backgroundColor: Colors.deepPurple,
+                                      foregroundColor: Colors.white,
+                                      icon: CupertinoIcons.arrow_right_to_line,
+                                    ),
+                                  ],
+                                ),
+                                child: Builder(
+                                  builder: (innerContext) {
+                                    slidableController = Slidable.of(innerContext);
+                                    return ListTile(
+                                    contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
+                                    leading: ClipRRect(
+                                      borderRadius: AppRadius.circularSm,
+                                      child: Container(
+                                        width: 48,
+                                        height: 48,
+                                        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                                        child: song.artworkPath != null && File(song.artworkPath!).existsSync()
+                                            ? Image.file(
+                                                File(song.artworkPath!),
+                                                fit: BoxFit.cover,
+                                              )
+                                            : Center(
+                                                child: Text(
+                                                  song.title.isNotEmpty ? song.title[0].toUpperCase() : '?',
+                                                  style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.grey),
+                                                ),
+                                              ),
+                                        ),
+                                      ),
+                                      title: Text(song.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600)),
+                                      subtitle: Text(song.artist, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color)),
+                                      trailing: const Icon(CupertinoIcons.play_circle, color: Colors.grey),
+                                      onTap: () {
+                                        FocusManager.instance.primaryFocus?.unfocus();
+                                        context.read<PlayerBloc>().add(PlaySong(song: song, queue: filteredSongs));
+                                      },
+                                    );
+                                  },
+                                ),
                               );
                             },
                             childCount: filteredSongs.isEmpty ? 0 : filteredSongs.length * 2 - 1,
