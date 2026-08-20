@@ -82,7 +82,12 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
     // while the Flutter UI was suspended in the background.
     if (state == AppLifecycleState.resumed) {
       if (mounted) {
-        context.read<PlayerBloc>().requestSync();
+        final bloc = context.read<PlayerBloc>();
+        bloc.requestSync();
+        
+        if (bloc.state.status == PlayerStatus.playing && _controller.value < 0.1) {
+          _controller.animateTo(1.0, curve: Curves.easeOutCubic, duration: AppDurations.fast);
+        }
       }
     }
   }

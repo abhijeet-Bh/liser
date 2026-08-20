@@ -221,6 +221,99 @@ class _AllTracksPageState extends State<AllTracksPage> {
     AppSnackBar.show(context, '${songs.length} songs deleted', type: SnackBarType.error);
   }
 
+  Future<bool> _confirmSingleDelete(Song song) async {
+    final result = await showDialog<bool>(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.5),
+      builder: (context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          child: ClipRRect(
+            borderRadius: AppRadius.circularXl,
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+              child: Container(
+                padding: AppPadding.allXl,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.75),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: AppPadding.allLg,
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.error.withValues(alpha: 0.15),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(CupertinoIcons.trash, color: Theme.of(context).colorScheme.error, size: 32),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Delete Song',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Are you sure you want to delete "${song.title}"?',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextButton(
+                            onPressed: () => Navigator.pop(context, false),
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(borderRadius: AppRadius.circularLg),
+                            ),
+                            child: Text(
+                              'Cancel',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: FilledButton(
+                            onPressed: () => Navigator.pop(context, true),
+                            style: FilledButton.styleFrom(
+                              backgroundColor: Theme.of(context).colorScheme.error,
+                              foregroundColor: Theme.of(context).colorScheme.onError,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(borderRadius: AppRadius.circularLg),
+                            ),
+                            child: const Text('Delete', style: TextStyle(fontWeight: FontWeight.w600)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+    return result ?? false;
+  }
+
+
 
   void _showSongQuickActions(BuildContext context, Song song) {
     showCupertinoModalPopup(
@@ -702,15 +795,28 @@ class _AllTracksPageState extends State<AllTracksPage> {
                                       // Auto-trigger delete when swiped past 50%.
                                       dismissible: DismissiblePane(
                                         dismissThreshold: 0.5,
-                                        onDismissed: () {
-                                          context.read<LibraryBloc>().add(RemoveSong(song));
+                                        onDismissed: () {},
+                                        confirmDismiss: () async {
+                                          final confirm = await _confirmSingleDelete(song);
+                                          if (confirm) {
+                                            if (context.mounted) {
+                                              context.read<LibraryBloc>().add(RemoveSong(song));
+                                            }
+                                            return true;
+                                          }
+                                          Future.microtask(() => slidableController?.close());
+                                          return false;
                                         },
                                       ),
                                       children: [
                                         SlidableAction(
                                           onPressed: (slidableContext) async {
-                                            final bloc = context.read<LibraryBloc>();
-                                            bloc.add(RemoveSong(song));
+                                            final confirm = await _confirmSingleDelete(song);
+                                            if (confirm) {
+                                              if (context.mounted) {
+                                                context.read<LibraryBloc>().add(RemoveSong(song));
+                                              }
+                                            }
                                           },
                                           backgroundColor: Colors.red,
                                           foregroundColor: Colors.white,
@@ -925,7 +1031,7 @@ class _AllTracksPageState extends State<AllTracksPage> {
                                           onPressed: () {
                                             Navigator.pop(actionContext);
                                             Future.delayed(const Duration(milliseconds: 300), () {
-                                              if (mounted) {
+                                              if (context.mounted) {
                                                 Navigator.push(
                                                   context,
                                                   MaterialPageRoute(

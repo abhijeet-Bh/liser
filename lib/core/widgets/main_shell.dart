@@ -137,6 +137,10 @@ class _MainShellState extends State<MainShell> with SingleTickerProviderStateMix
                           child: FloatingNavBar(
                             currentIndex: widget.navigationShell.currentIndex,
                             onTap: _onTap,
+                            onRestore: () {
+                              _targetShrink = 0.0;
+                              _animateShrink(0.0);
+                            },
                             shrinkProgress: _shrinkController.value,
                           ),
                         );

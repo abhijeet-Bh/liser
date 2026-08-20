@@ -99,8 +99,8 @@ class PlayerBloc extends Bloc<PlayerEvent, PlayerUiState> {
   late final StreamSubscription<Song?> _currentSongSubscription;
   late final StreamSubscription<double> _volumeSubscription;
   Future<void> _onPlaySong(PlaySong event, Emitter<PlayerUiState> emit) async {
-    await _playerService.playSong(event.queue, event.song);
-
+    // Optimistic UI update immediately so ExpandablePlayer shows correct info 
+    // while the async loadQueue operation happens.
     emit(
       state.copyWith(
         currentSong: event.song,
@@ -108,6 +108,8 @@ class PlayerBloc extends Bloc<PlayerEvent, PlayerUiState> {
         currentIndex: event.queue.indexWhere((e) => e.id == event.song.id),
       ),
     );
+
+    await _playerService.playSong(event.queue, event.song);
   }
 
   Future<void> _onTogglePlayPause(

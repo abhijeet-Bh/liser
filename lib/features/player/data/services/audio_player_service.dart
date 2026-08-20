@@ -63,6 +63,9 @@ class AudioPlayerService {
 
   Song? _currentSong;
 
+  // Flag to indicate if a sequence change was explicitly requested by our code.
+  bool _manualIndexChange = false;
+
   List<Song> _queue = [];
 
   StreamSubscription<int?>? _indexSubscription;
@@ -113,6 +116,7 @@ class AudioPlayerService {
               album: song.album,
               title: song.title,
               artist: song.artist,
+              duration: song.duration > 0 ? Duration(milliseconds: song.duration) : null,
               artUri: song.artworkPath != null ? Uri.file(song.artworkPath!) : null,
             ),
           ),
@@ -134,29 +138,19 @@ class AudioPlayerService {
       if (index == null) return;
       if (index < 0 || index >= _queue.length) return;
 
-      // just_audio (and just_audio_background) sometimes emits a spurious
-      // index == 0 immediately after a pause or a lock-screen prev/next
-      // command, before the player state has fully settled. We debounce
-      // any index-0 event that arrives while the player is not actively
-      // playing: if no confirming event arrives within 200 ms we ignore it.
       if (index == 0 && _currentSong != null && _queue.indexOf(_currentSong!) > 0) {
-        if (!_player.playing) {
-          _phantomDebounceTimer?.cancel();
-          _phantomDebounceTimer = Timer(const Duration(milliseconds: 200), () {
-            // After the debounce window, only apply if still at index 0 and
-            // still not playing, i.e. the OS genuinely seeked to the start.
-            if (_player.currentIndex == 0 && !_player.playing) {
-              _currentSong = _queue[0];
-              _currentSongController.add(_currentSong);
-              _saveQueueState();
-            }
-          });
-          return; // Don't update immediately — wait for debounce.
+        if (!_player.playing && !_manualIndexChange) {
+          // If we hit index 0 while paused without a manual seek, it's almost
+          // certainly the iOS/just_audio_background lock screen desync bug.
+          // The addition of duration to MediaItem usually prevents this, but
+          // we ignore it here just to be absolutely safe.
+          return;
         }
       }
+      
+      _manualIndexChange = false;
 
       // For any other index change (including index-0 while playing) apply at once.
-      _phantomDebounceTimer?.cancel();
       _currentSong = _queue[index];
       _currentSongController.add(_currentSong);
       _saveQueueState();
@@ -193,15 +187,15 @@ class AudioPlayerService {
 
   Future<void> next() async {
     if (_player.hasNext) {
+      _manualIndexChange = true;
       await _player.seekToNext();
     }
   }
 
   Future<void> previous() async {
     if (_player.hasPrevious) {
+      _manualIndexChange = true;
       await _player.seekToPrevious();
-    } else {
-      await seek(Duration.zero);
     }
   }
 
@@ -287,6 +281,7 @@ class AudioPlayerService {
         album: song.album,
         title: song.title,
         artist: song.artist,
+        duration: song.duration > 0 ? Duration(milliseconds: song.duration) : null,
         artUri: song.artworkPath != null ? Uri.file(song.artworkPath!) : null,
       ),
     );
@@ -311,6 +306,7 @@ class AudioPlayerService {
         album: song.album,
         title: song.title,
         artist: song.artist,
+        duration: song.duration > 0 ? Duration(milliseconds: song.duration) : null,
         artUri: song.artworkPath != null ? Uri.file(song.artworkPath!) : null,
       ),
     );

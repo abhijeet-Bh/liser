@@ -6,6 +6,7 @@ import 'package:liser/core/constants/app_constants.dart';
 class FloatingNavBar extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
+  final VoidCallback? onRestore;
   final double shrinkProgress;
   final Color activeColor;
 
@@ -13,6 +14,7 @@ class FloatingNavBar extends StatelessWidget {
     super.key,
     required this.currentIndex,
     required this.onTap,
+    this.onRestore,
     required this.shrinkProgress,
     this.activeColor = const Color(0xFFEC4899), // Hot Pink accent
   });
@@ -103,7 +105,10 @@ class FloatingNavBar extends StatelessWidget {
                           child: GestureDetector(
                             behavior: HitTestBehavior.opaque,
                             onTap: () {
-                              if (shrinkProgress > 0.5) return; 
+                              if (shrinkProgress > 0.5) {
+                                onRestore?.call();
+                                return;
+                              }
                               onTap(index);
                             },
                             child: Column(
