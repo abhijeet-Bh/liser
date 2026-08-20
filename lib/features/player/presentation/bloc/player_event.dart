@@ -81,6 +81,12 @@ final class AddSongToEnd extends PlayerEvent {
   final Song song;
 }
 
+final class RemoveFromQueue extends PlayerEvent {
+  const RemoveFromQueue(this.index);
+  /// The absolute queue index of the song to remove.
+  final int index;
+}
+
 /// Set volume.
 final class SetVolume extends PlayerEvent {
   const SetVolume(this.volume);
@@ -121,4 +127,10 @@ final class _CurrentSongChanged extends PlayerEvent {
   const _CurrentSongChanged(this.song);
 
   final Song? song;
+}
+
+/// Internal event: fired when the app returns to foreground so the bloc
+/// can re-read the service state and emit a fresh UI state.
+final class _SyncPlayerState extends PlayerEvent {
+  const _SyncPlayerState();
 }

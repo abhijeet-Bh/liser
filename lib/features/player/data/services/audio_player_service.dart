@@ -66,6 +66,11 @@ class AudioPlayerService {
   List<Song> _queue = [];
 
   StreamSubscription<int?>? _indexSubscription;
+  StreamSubscription<PlayerState>? _playerStateInternalSubscription;
+
+  /// Debounce timer used to ignore phantom index-0 events emitted by
+  /// just_audio immediately after a pause or lock-screen seek.
+  Timer? _phantomDebounceTimer;
 
   AudioPlayer get player => _player;
 
@@ -121,27 +126,45 @@ class AudioPlayerService {
     _currentSongController.add(_currentSong);
 
     await _indexSubscription?.cancel();
+    // Cancel previous playerStateStream listener to prevent subscription leaks
+    // (loadQueue can be called multiple times, e.g. on every PlaySong event).
+    await _playerStateInternalSubscription?.cancel();
 
     _indexSubscription = _player.currentIndexStream.listen((index) {
       if (index == null) return;
-
       if (index < 0 || index >= _queue.length) return;
 
-      // Workaround for just_audio emitting phantom index 0 on pause
-      if (index == 0 && _currentSong != null && _queue.indexOf(_currentSong!) > 0 && !_player.playing) {
-        if (_player.position.inMilliseconds > 500) {
-          return; // Ignore phantom 0
+      // just_audio (and just_audio_background) sometimes emits a spurious
+      // index == 0 immediately after a pause or a lock-screen prev/next
+      // command, before the player state has fully settled. We debounce
+      // any index-0 event that arrives while the player is not actively
+      // playing: if no confirming event arrives within 200 ms we ignore it.
+      if (index == 0 && _currentSong != null && _queue.indexOf(_currentSong!) > 0) {
+        if (!_player.playing) {
+          _phantomDebounceTimer?.cancel();
+          _phantomDebounceTimer = Timer(const Duration(milliseconds: 200), () {
+            // After the debounce window, only apply if still at index 0 and
+            // still not playing, i.e. the OS genuinely seeked to the start.
+            if (_player.currentIndex == 0 && !_player.playing) {
+              _currentSong = _queue[0];
+              _currentSongController.add(_currentSong);
+              _saveQueueState();
+            }
+          });
+          return; // Don't update immediately — wait for debounce.
         }
       }
 
+      // For any other index change (including index-0 while playing) apply at once.
+      _phantomDebounceTimer?.cancel();
       _currentSong = _queue[index];
-
       _currentSongController.add(_currentSong);
       _saveQueueState();
     });
-    
-    // Also save state on position change sparingly or pause
-    _player.playerStateStream.listen((state) {
+
+    // Save state on pause. Store the subscription so it can be cancelled on
+    // the next loadQueue call (prevents one listener per queue load).
+    _playerStateInternalSubscription = _player.playerStateStream.listen((state) {
       if (!state.playing) {
         _saveQueueState();
       }
@@ -284,8 +307,33 @@ class AudioPlayerService {
     _saveQueueState();
   }
 
+  Future<void> removeFromQueue(int index) async {
+    if (_playlist == null) return;
+    if (index < 0 || index >= _queue.length) return;
+    // Don't allow removing the currently playing song.
+    if (index == currentIndex) return;
+    _queue.removeAt(index);
+    await _playlist!.removeAt(index);
+    _currentSongController.add(_currentSong);
+    _saveQueueState();
+  }
+
+  /// Force-emit the current song state so that the UI can re-sync after the
+  /// app returns from the background (where the OS media session may have
+  /// changed the track without Flutter receiving a stream event).
+  void syncState() {
+    final index = _player.currentIndex;
+    if (index != null && index >= 0 && index < _queue.length) {
+      _phantomDebounceTimer?.cancel();
+      _currentSong = _queue[index];
+      _currentSongController.add(_currentSong);
+    }
+  }
+
   Future<void> dispose() async {
+    _phantomDebounceTimer?.cancel();
     await _indexSubscription?.cancel();
+    await _playerStateInternalSubscription?.cancel();
 
     await _player.dispose();
 

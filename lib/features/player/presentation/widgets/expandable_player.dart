@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/physics.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:liser/features/player/presentation/bloc/player_bloc.dart';
 import 'package:liser/features/library/data/models/song.dart';
@@ -71,6 +72,19 @@ class _ExpandablePlayerState extends State<ExpandablePlayer> with TickerProvider
     _controller.dispose();
     _queueController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // When the app returns to the foreground, force the bloc to re-sync its
+    // state from the audio service. This catches any track/position changes
+    // that happened via the OS media session (lock screen / notification bar)
+    // while the Flutter UI was suspended in the background.
+    if (state == AppLifecycleState.resumed) {
+      if (mounted) {
+        context.read<PlayerBloc>().requestSync();
+      }
+    }
   }
 
   @override
@@ -1203,70 +1217,93 @@ class _QueueListWidgetState extends State<_QueueListWidget> {
       final isPast = i < widget.currentIndex;
       
       children.add(
-        InkWell(
+        Slidable(
           key: ValueKey(qSong.id + '_$i'),
-          onTap: () {
-            HapticFeedback.lightImpact();
-            context.read<PlayerBloc>().add(PlaySong(song: qSong, queue: queue));
-          },
-          child: Opacity(
-            opacity: isPast ? 0.4 : 1.0,
-            child: SizedBox(
-              height: 64, // explicitly height to match our offset calculation
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                child: Row(
+          // Only upcoming songs can be removed (not past or current).
+          endActionPane: isPast
+              ? null
+              : ActionPane(
+                  motion: const DrawerMotion(),
+                  extentRatio: 0.22,
                   children: [
-                    if (!isPast)
-                      ReorderableDragStartListener(
-                        index: children.length, // use current length as visual index
-                        child: const Padding(
-                          padding: EdgeInsets.only(right: 12.0),
-                          child: Icon(CupertinoIcons.bars, color: Colors.white38),
-                        ),
-                      )
-                    else
-                      const SizedBox(width: 36),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(6),
-                      child: Container(
-                        width: 48,
-                        height: 48,
-                        color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                        child: qSong.artworkPath != null
-                            ? Image.file(
-                                File(qSong.artworkPath!),
-                                fit: BoxFit.cover,
-                              )
-                            : const Icon(CupertinoIcons.music_note, color: Colors.grey),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            qSong.title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            qSong.artist,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: Theme.of(context).textTheme.bodySmall?.color,
-                              fontSize: 13,
-                            ),
-                          ),
-                        ],
-                      ),
+                    SlidableAction(
+                      onPressed: (_) {
+                        HapticFeedback.mediumImpact();
+                        // i is the absolute queue index — must pass it directly.
+                        context.read<PlayerBloc>().add(RemoveFromQueue(i));
+                        AppSnackBar.show(context, '${qSong.title} removed from queue');
+                      },
+                      backgroundColor: Colors.red.shade700,
+                      foregroundColor: Colors.white,
+                      icon: CupertinoIcons.minus_circle_fill,
+                      borderRadius: BorderRadius.circular(12),
                     ),
                   ],
+                ),
+          child: InkWell(
+            onTap: () {
+              HapticFeedback.lightImpact();
+              context.read<PlayerBloc>().add(PlaySong(song: qSong, queue: queue));
+            },
+            child: Opacity(
+              opacity: isPast ? 0.4 : 1.0,
+              child: SizedBox(
+                height: 64, // explicitly height to match our offset calculation
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                  child: Row(
+                    children: [
+                      if (!isPast)
+                        ReorderableDragStartListener(
+                          index: children.length, // use current length as visual index
+                          child: const Padding(
+                            padding: EdgeInsets.only(right: 12.0),
+                            child: Icon(CupertinoIcons.bars, color: Colors.white38),
+                          ),
+                        )
+                      else
+                        const SizedBox(width: 36),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(6),
+                        child: Container(
+                          width: 48,
+                          height: 48,
+                          color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                          child: qSong.artworkPath != null
+                              ? Image.file(
+                                  File(qSong.artworkPath!),
+                                  fit: BoxFit.cover,
+                                )
+                              : const Icon(CupertinoIcons.music_note, color: Colors.grey),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              qSong.title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              qSong.artist,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: Theme.of(context).textTheme.bodySmall?.color,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),

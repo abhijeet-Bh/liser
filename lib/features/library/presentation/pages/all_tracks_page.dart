@@ -670,6 +670,16 @@ class _AllTracksPageState extends State<AllTracksPage> {
                                     key: ValueKey(song.id),
                                     startActionPane: ActionPane(
                                       motion: const StretchMotion(),
+                                      // Auto-trigger when swiped past 50% of the item width.
+                                      dismissible: DismissiblePane(
+                                        dismissThreshold: 0.5,
+                                        onDismissed: () {}, // action fired in confirmDismiss
+                                        confirmDismiss: () async {
+                                          context.read<PlayerBloc>().add(AddSongToEnd(song));
+                                          AppSnackBar.show(context, '${song.title} added to queue', type: SnackBarType.success);
+                                          return false; // Keep item in list, just close pane.
+                                        },
+                                      ),
                                       children: [
                                         SlidableAction(
                                           onPressed: (context) {
@@ -684,6 +694,13 @@ class _AllTracksPageState extends State<AllTracksPage> {
                                     ),
                                     endActionPane: ActionPane(
                                       motion: const StretchMotion(),
+                                      // Auto-trigger delete when swiped past 50%.
+                                      dismissible: DismissiblePane(
+                                        dismissThreshold: 0.5,
+                                        onDismissed: () {
+                                          context.read<LibraryBloc>().add(RemoveSong(song));
+                                        },
+                                      ),
                                       children: [
                                         SlidableAction(
                                           onPressed: (slidableContext) async {
